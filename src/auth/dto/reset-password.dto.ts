@@ -1,6 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
 import {
-    IsEmail,
     IsNumber,
     IsPositive,
     IsNotEmpty,
@@ -12,13 +11,26 @@ import {
 
 export class ResetPasswordDto {
     @ApiProperty({
-        description: 'User email',
-        example: 'name@email.com',
+        description: 'User phone',
+        example: '1234567890',
         required: true,
-        uniqueItems: true,
     })
-    @IsEmail()
-    email: string;
+    @IsString()
+    @IsNotEmpty()
+    @MaxLength(20)
+    @MinLength(11)
+    phone: string;
+
+    @ApiProperty({
+        description: 'User country code (ISO 3166-1 alpha-2)',
+        example: 'AR',
+        required: true,
+    })
+    @IsString()
+    @IsNotEmpty()
+    @MaxLength(2)
+    @MinLength(2)
+    countryCode: string;
 
     @ApiProperty({
         description: 'User password',

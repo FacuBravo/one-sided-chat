@@ -6,7 +6,6 @@ import { AuthService } from './auth.service';
 import {
     CreateUserDto,
     LoginUserDto,
-    TokenDto,
     LoggedUserResponse,
     ChangePasswordDto,
     UpdateUserDataDto,
@@ -53,18 +52,6 @@ export class AuthController {
     @ApiResponse({ status: 401, description: 'Unauthorized. Invalid token.' })
     checkAuthStatus(@GetUser() user: User) {
         return this.authService.checkAuthStatus(user);
-    }
-
-    @Post('google/login')
-    @ApiResponse({
-        status: 200,
-        description: 'Login a user with Google',
-        type: LoggedUserResponse,
-    })
-    @ApiResponse({ status: 403, description: 'Forbidden. Action not allowed.' })
-    @ApiResponse({ status: 401, description: 'Unauthorized. Invalid token.' })
-    loginGoogleUser(@Body() token: TokenDto) {
-        return this.authService.loginGoogleUser(token.token);
     }
 
     @Patch('change-password')

@@ -1,4 +1,4 @@
-import { ApiProperty } from "@nestjs/swagger";
+import { ApiProperty } from '@nestjs/swagger';
 
 export class LoggedUserResponse {
     @ApiProperty({
@@ -9,11 +9,22 @@ export class LoggedUserResponse {
     id: string;
 
     @ApiProperty({
-        description: 'User email',
-        example: 'name@email.com',
-        uniqueItems: true,
+        description: 'User full name',
+        example: 'Name Surname',
     })
-    email: string;
+    fullName: string;
+
+    @ApiProperty({
+        description: 'User phone number',
+        example: '+1234567890',
+    })
+    phone: string;
+
+    @ApiProperty({
+        description: 'User country code (ISO 3166-1 alpha-2)',
+        example: 'AR',
+    })
+    country: string;
 
     @ApiProperty({
         description: 'Token expiration time',
@@ -25,10 +36,4 @@ export class LoggedUserResponse {
         type: 'string',
     })
     token: string;
-
-    @ApiProperty({
-        description: 'User logged with',
-        example: 'google',
-    })
-    loggedWith: 'google' | 'regular';
 }

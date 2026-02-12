@@ -1,10 +1,4 @@
-import {
-    BeforeInsert,
-    BeforeUpdate,
-    Column,
-    Entity,
-    PrimaryGeneratedColumn,
-} from 'typeorm';
+import { Column, Entity, PrimaryGeneratedColumn } from 'typeorm';
 
 @Entity({ name: 'users' })
 export class User {
@@ -12,28 +6,45 @@ export class User {
     id: string;
 
     @Column({
-        type: 'text',
+        type: 'varchar',
+        length: 50,
+        nullable: false,
+    })
+    fullName: string;
+
+    @Column({
+        type: 'varchar',
+        length: 5,
+        nullable: false,
+    })
+    country_code: string;
+
+    @Column({
+        type: 'varchar',
+        length: 2,
+        nullable: false,
+    })
+    country_iso: string;
+
+    @Column({
+        type: 'varchar',
+        length: 15,
+        nullable: false,
+    })
+    phone_number: string;
+
+    @Column({
+        type: 'varchar',
+        length: 20,
+        nullable: false,
         unique: true,
     })
-    email: string;
+    phone_e164: string;
 
     @Column({
         type: 'text',
         select: false,
-        nullable: true,
+        nullable: false,
     })
     password: string;
-
-    @Column({
-        type: 'varchar',
-        default: 'regular',
-        length: 7,
-    })
-    loginType: 'regular' | 'google';
-
-    @BeforeInsert()
-    @BeforeUpdate()
-    private checkBeforeInsert() {
-        this.email = this.email.toLocaleLowerCase().trim();
-    }
 }

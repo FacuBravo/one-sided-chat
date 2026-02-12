@@ -7,42 +7,43 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { JwtService } from '@nestjs/jwt';
-import { ConfigService } from '@nestjs/config';
 import { Repository } from 'typeorm';
-import { OAuth2Client, TokenPayload } from 'google-auth-library';
 import * as bcrypt from 'bcrypt';
 
 import { User } from './entities/user.entity';
 import { JwtPayload } from './interfaces/jwt-payload.interface';
 import {
     ChangePasswordDto,
-    CreateGoogleUserDto,
     CreateUserDto,
     LoggedUserResponse,
     LoginUserDto,
     ResetPasswordDto,
     UpdateUserDataDto,
 } from './dto';
+import { normalizePhone } from 'src/utils/functions';
 
 @Injectable()
 export class AuthService {
     private readonly logger = new Logger('AuthService');
-    private readonly client = new OAuth2Client();
 
     constructor(
         @InjectRepository(User)
         private readonly userRepository: Repository<User>,
         private readonly jwtService: JwtService,
-        private readonly configService: ConfigService,
     ) {}
 
     async create(createUserDto: CreateUserDto) {
         try {
             const { password, ...userData } = createUserDto;
+            const normalizedPhone = normalizePhone(
+                userData.phone,
+                userData.countryCode,
+            );
+
             const user = this.userRepository.create({
                 ...userData,
+                ...normalizedPhone,
                 password: bcrypt.hashSync(password, 10),
-                loginType: 'regular',
             });
 
             await this.userRepository.save(user);
@@ -50,9 +51,10 @@ export class AuthService {
             const loggedUserResponse: LoggedUserResponse = {
                 id: user.id,
                 token: this.createJwt({ id: user.id }),
-                email: user.email,
+                fullName: user.fullName,
+                phone: user.phone_e164,
+                country: user.country_iso,
                 expires: this.getExpires(),
-                loggedWith: 'regular',
             };
 
             return {
@@ -64,24 +66,23 @@ export class AuthService {
     }
 
     async login(loginUserDto: LoginUserDto) {
-        const { email, password } = loginUserDto;
+        const { phone, countryCode, password } = loginUserDto;
+
+        const { phone_e164 } = normalizePhone(phone, countryCode);
 
         const user = await this.userRepository.findOne({
-            where: { email },
+            where: { phone_e164 },
             select: {
-                email: true,
+                phone_e164: true,
+                country_iso: true,
                 password: true,
                 id: true,
-                loginType: true,
+                fullName: true,
             },
         });
 
         if (!user) {
-            throw new UnauthorizedException(`Invalid Credentials (email)`);
-        }
-
-        if (user.loginType === 'google') {
-            throw new BadRequestException(`User registered with Google`);
+            throw new UnauthorizedException(`Invalid Credentials (phone)`);
         }
 
         if (!bcrypt.compareSync(password, user.password)) {
@@ -91,9 +92,10 @@ export class AuthService {
         const loggedUserResponse: LoggedUserResponse = {
             id: user.id,
             token: this.createJwt({ id: user.id }),
-            email: user.email,
+            fullName: user.fullName,
+            phone: user.phone_e164,
+            country: user.country_iso,
             expires: this.getExpires(),
-            loggedWith: 'regular',
         };
 
         return loggedUserResponse;
@@ -107,47 +109,18 @@ export class AuthService {
         };
     }
 
-    async loginGoogleUser(token: string) {
-        try {
-            const ticket = await this.client.verifyIdToken({
-                idToken: token,
-                audience: this.configService.get('GOOGLE_CLIENT_ID'),
-            });
-
-            const payload = ticket.getPayload();
-
-            if (!payload) {
-                throw new Error();
-            }
-
-            return this.checkGoogleUser(payload);
-        } catch (error) {
-            const customError = {
-                message: error,
-                code: 401,
-            };
-
-            this.handleErrors(customError);
-        }
-    }
-
     async changePassword(changePasswordDto: ChangePasswordDto, user: User) {
         const { oldPassword, newPassword } = changePasswordDto;
 
         const userDb = await this.userRepository.findOne({
-            where: { email: user.email },
+            where: { phone_e164: user.phone_e164 },
             select: {
                 password: true,
-                loginType: true,
             },
         });
 
         if (!user) {
             throw new UnauthorizedException(`Invalid Credentials (email)`);
-        }
-
-        if (user.loginType === 'google') {
-            throw new BadRequestException(`User registered with Google`);
         }
 
         if (!bcrypt.compareSync(oldPassword, userDb!.password)) {
@@ -184,22 +157,20 @@ export class AuthService {
     }
 
     async resetPassword(resetPasswordDto: ResetPasswordDto) {
-        const { email, password, code, hashedCode } = resetPasswordDto;
+        const { phone, countryCode, password, code, hashedCode } =
+            resetPasswordDto;
+
+        const { phone_e164 } = normalizePhone(phone, countryCode);
 
         const user = await this.userRepository.findOne({
-            where: { email },
+            where: { phone_e164 },
             select: {
                 id: true,
-                loginType: true,
             },
         });
 
         if (!user) {
             throw new BadRequestException(`User not found`);
-        }
-
-        if (user.loginType === 'google') {
-            throw new BadRequestException(`User registered with Google`);
         }
 
         if (!bcrypt.compareSync(code.toString(), hashedCode)) {
@@ -218,62 +189,6 @@ export class AuthService {
         }
     }
 
-    private async checkGoogleUser(payload: TokenPayload) {
-        const { email, name } = payload;
-
-        if (!email) {
-            throw new UnauthorizedException('Google token is invalid');
-        }
-
-        const user = await this.userRepository.findOne({
-            where: { email },
-            select: {
-                email: true,
-                id: true,
-                loginType: true,
-            },
-        });
-
-        if (!user) {
-            return this.createGoogleUser({
-                email,
-            });
-        }
-
-        const loggedUserResponse: LoggedUserResponse = {
-            token: this.createJwt({ id: user.id }),
-            expires: this.getExpires(),
-            id: user.id,
-            email: user.email,
-            loggedWith: user.loginType,
-        };
-
-        return loggedUserResponse;
-    }
-
-    private async createGoogleUser(createGoogleUserDto: CreateGoogleUserDto) {
-        try {
-            const user = this.userRepository.create({
-                ...createGoogleUserDto,
-                loginType: 'google',
-            });
-
-            await this.userRepository.save(user);
-
-            const loggedUserResponse: LoggedUserResponse = {
-                id: user.id,
-                token: this.createJwt({ id: user.id }),
-                email: user.email,
-                expires: this.getExpires(),
-                loggedWith: 'google',
-            };
-
-            return loggedUserResponse;
-        } catch (error) {
-            this.handleErrors(error);
-        }
-    }
-
     private createJwt(payload: JwtPayload) {
         return this.jwtService.sign(payload);
     }
@@ -285,6 +200,8 @@ export class AuthService {
             throw new BadRequestException(error.detail);
         } else if (error.code == 401) {
             throw new UnauthorizedException('Invalid token');
+        } else if (error.response.statusCode == 400) {
+            throw new BadRequestException(error.response.message);
         }
 
         throw new InternalServerErrorException(error.detail);
