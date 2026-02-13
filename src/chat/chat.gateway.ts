@@ -11,7 +11,11 @@ import { JwtPayload } from 'src/auth/interfaces/jwt-payload.interface';
 import { JwtService } from '@nestjs/jwt';
 import { MessageFromClientDto } from './dto/client-message.dto';
 
-@WebSocketGateway()
+@WebSocketGateway({
+    cors: {
+        origin: '*',
+    },
+})
 export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     @WebSocketServer() wss: Server;
 
@@ -36,7 +40,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     }
 
     @SubscribeMessage('message-from-client')
-    async remove(client: Socket, payload: MessageFromClientDto) {
+    async handleMessage(client: Socket, payload: MessageFromClientDto) {
         const toUsers = await this.chatService.getUsersFromPhones(
             payload.phones,
         );
