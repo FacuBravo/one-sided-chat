@@ -23,14 +23,16 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
         });
     }
 
-    async validate(payload: JwtPayload): Promise<User> {
-        const { id } = payload;
+    async validate(
+        payload: JwtPayload,
+    ): Promise<{ user: User; type: 'access' | 'refresh' }> {
+        const { id, type } = payload;
         const user = await this.userRepository.findOneBy({ id });
 
-        if (!user) {
+        if (!user || !type) {
             throw new UnauthorizedException('Token not valid');
         }
 
-        return user;
+        return { user, type };
     }
 }

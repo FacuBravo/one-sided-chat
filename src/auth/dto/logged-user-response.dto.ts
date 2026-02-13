@@ -36,4 +36,10 @@ export class LoggedUserResponse {
         type: 'string',
     })
     token: string;
+
+    @ApiProperty({
+        description: 'Refresh token',
+        type: 'string',
+    })
+    refreshToken: string;
 }

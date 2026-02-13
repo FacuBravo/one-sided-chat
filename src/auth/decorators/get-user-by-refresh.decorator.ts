@@ -6,12 +6,12 @@ import {
 
 import { User } from '../entities/user.entity';
 
-export const GetUser = createParamDecorator(
+export const GetUserByRefresh = createParamDecorator(
     (data: string, ctx: ExecutionContext) => {
         const req = ctx.switchToHttp().getRequest();
         const user = req.user.user as User;
 
-        if (req.user.type !== 'access') {
+        if (req.user.type !== 'refresh') {
             throw new UnauthorizedException('Invalid token type');
         }
 

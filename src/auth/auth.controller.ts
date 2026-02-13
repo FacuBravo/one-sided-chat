@@ -1,17 +1,18 @@
-import { Controller, Get, Post, Body, Patch } from '@nestjs/common';
+import {
+    Controller,
+    Get,
+    Post,
+    Body,
+    Patch,
+    UnauthorizedException,
+    Delete,
+} from '@nestjs/common';
 import { ApiResponse } from '@nestjs/swagger';
 
 import { User } from './entities/user.entity';
 import { AuthService } from './auth.service';
-import {
-    CreateUserDto,
-    LoginUserDto,
-    LoggedUserResponse,
-    ChangePasswordDto,
-    UpdateUserDataDto,
-    ResetPasswordDto,
-} from './dto';
-import { GetUser, Auth } from './decorators';
+import { CreateUserDto, LoggedUserResponse, UpdateUserDataDto } from './dto';
+import { GetUser, Auth, GetUserByRefresh, GetRefreshToken } from './decorators';
 
 @Controller('auth')
 export class AuthController {
@@ -28,45 +29,24 @@ export class AuthController {
         return this.authService.create(createUserDto);
     }
 
-    @Post('login')
-    @ApiResponse({
-        status: 201,
-        description: 'Login a user',
-        type: LoggedUserResponse,
-    })
-    @ApiResponse({ status: 400, description: 'Bad request' })
-    @ApiResponse({ status: 403, description: 'Forbidden. Action not allowed.' })
-    @ApiResponse({ status: 401, description: 'Unauthorized. Invalid token.' })
-    loginUser(@Body() loginUserDto: LoginUserDto) {
-        return this.authService.login(loginUserDto);
-    }
-
-    @Get('check-auth-status')
+    @Get('renew-tokens')
     @Auth()
     @ApiResponse({
         status: 200,
-        description: 'Check authentication status',
+        description: 'Renew authentication tokens',
         type: LoggedUserResponse,
     })
     @ApiResponse({ status: 403, description: 'Forbidden. Action not allowed.' })
     @ApiResponse({ status: 401, description: 'Unauthorized. Invalid token.' })
-    checkAuthStatus(@GetUser() user: User) {
-        return this.authService.checkAuthStatus(user);
-    }
-
-    @Patch('change-password')
-    @Auth()
-    @ApiResponse({
-        status: 200,
-        description: 'Change password',
-    })
-    @ApiResponse({ status: 403, description: 'Forbidden. Action not allowed.' })
-    @ApiResponse({ status: 401, description: 'Unauthorized. Invalid token.' })
-    changePassword(
-        @Body() changePasswordDto: ChangePasswordDto,
-        @GetUser() user: User,
+    checkAuthStatus(
+        @GetUserByRefresh() user: User,
+        @GetRefreshToken() refreshToken: string,
     ) {
-        return this.authService.changePassword(changePasswordDto, user);
+        if (user.refreshToken !== refreshToken) {
+            throw new UnauthorizedException('Invalid refresh token');
+        }
+
+        return this.authService.renewTokens(user);
     }
 
     @Patch()
@@ -85,14 +65,15 @@ export class AuthController {
         return this.authService.updateUser(updateUserDataDto, user);
     }
 
-    @Patch('forgot-password')
+    @Delete('close-session')
+    @Auth()
     @ApiResponse({
         status: 200,
-        description: 'Reset password',
+        description: 'Close user session',
     })
     @ApiResponse({ status: 403, description: 'Forbidden. Action not allowed.' })
     @ApiResponse({ status: 401, description: 'Unauthorized. Invalid token.' })
-    resetPassword(@Body() resetPasswordDto: ResetPasswordDto) {
-        return this.authService.resetPassword(resetPasswordDto);
+    closeSession(@GetUser() user: User) {
+        return this.authService.closeSession(user);
     }
 }

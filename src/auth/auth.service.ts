@@ -8,18 +8,10 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { JwtService } from '@nestjs/jwt';
 import { Repository } from 'typeorm';
-import * as bcrypt from 'bcrypt';
 
 import { User } from './entities/user.entity';
 import { JwtPayload } from './interfaces/jwt-payload.interface';
-import {
-    ChangePasswordDto,
-    CreateUserDto,
-    LoggedUserResponse,
-    LoginUserDto,
-    ResetPasswordDto,
-    UpdateUserDataDto,
-} from './dto';
+import { CreateUserDto, LoggedUserResponse, UpdateUserDataDto } from './dto';
 import { normalizePhone } from 'src/utils/functions';
 
 @Injectable()
@@ -34,28 +26,34 @@ export class AuthService {
 
     async create(createUserDto: CreateUserDto) {
         try {
-            const { password, ...userData } = createUserDto;
             const normalizedPhone = normalizePhone(
-                userData.phone,
-                userData.countryCode,
+                createUserDto.phone,
+                createUserDto.countryCode,
             );
 
             const user = this.userRepository.create({
-                ...userData,
+                ...createUserDto,
                 ...normalizedPhone,
-                password: bcrypt.hashSync(password, 10),
             });
 
             await this.userRepository.save(user);
 
             const loggedUserResponse: LoggedUserResponse = {
                 id: user.id,
-                token: this.createJwt({ id: user.id }),
+                token: this.createJwt({ id: user.id, type: 'access' }),
                 fullName: user.fullName,
                 phone: user.phone_e164,
                 country: user.country_iso,
                 expires: this.getExpires(),
+                refreshToken: this.createRefreshToken({
+                    id: user.id,
+                    type: 'refresh',
+                }),
             };
+
+            await this.userRepository.update(user.id, {
+                refreshToken: loggedUserResponse.refreshToken,
+            });
 
             return {
                 ...loggedUserResponse,
@@ -65,78 +63,36 @@ export class AuthService {
         }
     }
 
-    async login(loginUserDto: LoginUserDto) {
-        const { phone, countryCode, password } = loginUserDto;
-
-        const { phone_e164 } = normalizePhone(phone, countryCode);
-
-        const user = await this.userRepository.findOne({
-            where: { phone_e164 },
-            select: {
-                phone_e164: true,
-                country_iso: true,
-                password: true,
-                id: true,
-                fullName: true,
-            },
-        });
-
-        if (!user) {
-            throw new UnauthorizedException(`Invalid Credentials (phone)`);
-        }
-
-        if (!bcrypt.compareSync(password, user.password)) {
-            throw new UnauthorizedException(`Invalid Credentials (password)`);
-        }
-
+    async renewTokens(user: User) {
         const loggedUserResponse: LoggedUserResponse = {
-            id: user.id,
-            token: this.createJwt({ id: user.id }),
-            fullName: user.fullName,
+            token: this.createJwt({ id: user.id, type: 'access' }),
+            expires: this.getExpires(),
+            refreshToken: this.createRefreshToken({
+                id: user.id,
+                type: 'refresh',
+            }),
             phone: user.phone_e164,
             country: user.country_iso,
-            expires: this.getExpires(),
+            id: user.id,
+            fullName: user.fullName,
         };
-
-        return loggedUserResponse;
-    }
-
-    async checkAuthStatus(user: User) {
-        return {
-            ...user,
-            token: this.createJwt({ id: user.id }),
-            expires: this.getExpires(),
-        };
-    }
-
-    async changePassword(changePasswordDto: ChangePasswordDto, user: User) {
-        const { oldPassword, newPassword } = changePasswordDto;
-
-        const userDb = await this.userRepository.findOne({
-            where: { phone_e164: user.phone_e164 },
-            select: {
-                password: true,
-            },
-        });
-
-        if (!user) {
-            throw new UnauthorizedException(`Invalid Credentials (email)`);
-        }
-
-        if (!bcrypt.compareSync(oldPassword, userDb!.password)) {
-            throw new UnauthorizedException(`Invalid Credentials`);
-        }
 
         try {
-            const hashedNewPassword = bcrypt.hashSync(newPassword, 10);
-            const updatedUser = { ...user, password: hashedNewPassword };
+            await this.userRepository.update(user.id, {
+                refreshToken: loggedUserResponse.refreshToken,
+            });
 
-            await this.userRepository.save({ ...updatedUser });
-
-            return;
+            return loggedUserResponse;
         } catch (error) {
-            this.logger.error(error);
-            throw new InternalServerErrorException();
+            this.handleErrors(error);
+        }
+    }
+
+    async closeSession(user: User) {
+        try {
+            await this.userRepository.update(user.id, { refreshToken: null });
+        } catch (error) {
+            this.handleErrors(error);
         }
     }
 
@@ -156,41 +112,12 @@ export class AuthService {
         }
     }
 
-    async resetPassword(resetPasswordDto: ResetPasswordDto) {
-        const { phone, countryCode, password, code, hashedCode } =
-            resetPasswordDto;
-
-        const { phone_e164 } = normalizePhone(phone, countryCode);
-
-        const user = await this.userRepository.findOne({
-            where: { phone_e164 },
-            select: {
-                id: true,
-            },
-        });
-
-        if (!user) {
-            throw new BadRequestException(`User not found`);
-        }
-
-        if (!bcrypt.compareSync(code.toString(), hashedCode)) {
-            throw new BadRequestException(`Invalid verification code`);
-        }
-
-        try {
-            const hashedPassword = bcrypt.hashSync(password, 10);
-            await this.userRepository.update(user.id, {
-                password: hashedPassword,
-            });
-
-            return;
-        } catch (error) {
-            this.handleErrors(error);
-        }
-    }
-
     private createJwt(payload: JwtPayload) {
         return this.jwtService.sign(payload);
+    }
+
+    private createRefreshToken(payload: JwtPayload) {
+        return this.jwtService.sign(payload, { expiresIn: '30d' });
     }
 
     private handleErrors(error: any): never {

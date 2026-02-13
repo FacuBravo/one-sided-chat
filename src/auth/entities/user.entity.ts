@@ -14,6 +14,14 @@ export class User {
 
     @Column({
         type: 'varchar',
+        length: 30,
+        nullable: false,
+        unique: true,
+    })
+    username: string;
+
+    @Column({
+        type: 'varchar',
         length: 5,
         nullable: false,
     })
@@ -43,8 +51,14 @@ export class User {
 
     @Column({
         type: 'text',
-        select: false,
-        nullable: false,
+        nullable: true,
+        unique: true,
     })
-    password: string;
+    refreshToken?: string | null;
+
+    @Column({
+        type: 'boolean',
+        default: false,
+    })
+    phoneVerified: boolean;
 }
