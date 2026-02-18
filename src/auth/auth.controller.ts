@@ -11,7 +11,12 @@ import { ApiResponse } from '@nestjs/swagger';
 
 import { User } from './entities/user.entity';
 import { AuthService } from './auth.service';
-import { CreateUserDto, LoggedUserResponse, UpdateUserDataDto } from './dto';
+import {
+    CheckPhoneDto,
+    CreateUserDto,
+    LoggedUserResponse,
+    UpdateUserDataDto,
+} from './dto';
 import { GetUser, Auth, GetUserByRefresh, GetRefreshToken } from './decorators';
 
 @Controller('auth')
@@ -27,6 +32,17 @@ export class AuthController {
     @ApiResponse({ status: 400, description: 'Bad request' })
     createUser(@Body() createUserDto: CreateUserDto) {
         return this.authService.create(createUserDto);
+    }
+
+    @Post('check-phone')
+    @ApiResponse({
+        status: 200,
+        description: 'Check phone number availability',
+        type: LoggedUserResponse,
+    })
+    @ApiResponse({ status: 400, description: 'Bad request' })
+    checkPhone(@Body() checkPhoneDto: CheckPhoneDto) {
+        return this.authService.checkPhone(checkPhoneDto);
     }
 
     @Get('renew-tokens')

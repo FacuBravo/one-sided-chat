@@ -11,7 +11,12 @@ import { Repository } from 'typeorm';
 
 import { User } from './entities/user.entity';
 import { JwtPayload } from './interfaces/jwt-payload.interface';
-import { CreateUserDto, LoggedUserResponse, UpdateUserDataDto } from './dto';
+import {
+    CheckPhoneDto,
+    CreateUserDto,
+    LoggedUserResponse,
+    UpdateUserDataDto,
+} from './dto';
 import { normalizePhone } from 'src/utils/functions';
 
 @Injectable()
@@ -58,6 +63,27 @@ export class AuthService {
             return {
                 ...loggedUserResponse,
             };
+        } catch (error) {
+            this.handleErrors(error);
+        }
+    }
+
+    async checkPhone(checkPhoneDto: CheckPhoneDto) {
+        const normalizedPhone = normalizePhone(
+            checkPhoneDto.phone,
+            checkPhoneDto.countryCode,
+        );
+
+        try {
+            const user = await this.userRepository.findOneBy({
+                phone_e164: normalizedPhone.phone_e164,
+            });
+
+            if (user) {
+                return true;
+            } else {
+                return false;
+            }
         } catch (error) {
             this.handleErrors(error);
         }
