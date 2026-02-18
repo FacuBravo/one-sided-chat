@@ -8,6 +8,7 @@ import { User } from './entities/user.entity';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
 import { JwtStrategy } from './strategies/jwt.strategy';
+import { TwilioModule } from 'src/utils/sms/twilio.module';
 
 @Module({
     controllers: [AuthController],
@@ -28,6 +29,7 @@ import { JwtStrategy } from './strategies/jwt.strategy';
                 };
             },
         }),
+        TwilioModule,
     ],
     exports: [TypeOrmModule, JwtStrategy, PassportModule, JwtModule],
 })

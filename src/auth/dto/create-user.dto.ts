@@ -7,17 +7,7 @@ import {
     MinLength,
 } from 'class-validator';
 
-export class CreateUserDto {
-    @ApiProperty({
-        description: 'User name',
-        example: 'Name Surname',
-        required: true,
-    })
-    @IsString()
-    @IsNotEmpty()
-    @MaxLength(50)
-    fullName: string;
-
+export class BasicPhoneDto {
     @ApiProperty({
         description: 'User phone',
         example: '1234567890',
@@ -39,6 +29,18 @@ export class CreateUserDto {
     @MaxLength(2)
     @MinLength(2)
     countryCode: string;
+}
+
+export class CreateUserDto extends BasicPhoneDto {
+    @ApiProperty({
+        description: 'User name',
+        example: 'Name Surname',
+        required: true,
+    })
+    @IsString()
+    @IsNotEmpty()
+    @MaxLength(50)
+    fullName: string;
 
     @ApiProperty({
         description: 'Username',

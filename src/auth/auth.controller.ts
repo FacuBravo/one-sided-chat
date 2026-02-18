@@ -12,10 +12,11 @@ import { ApiResponse } from '@nestjs/swagger';
 import { User } from './entities/user.entity';
 import { AuthService } from './auth.service';
 import {
-    CheckPhoneDto,
+    BasicPhoneDto,
     CreateUserDto,
     LoggedUserResponse,
     UpdateUserDataDto,
+    VerifyPhoneDto,
 } from './dto';
 import { GetUser, Auth, GetUserByRefresh, GetRefreshToken } from './decorators';
 
@@ -34,15 +35,15 @@ export class AuthController {
         return this.authService.create(createUserDto);
     }
 
-    @Post('check-phone')
+    @Post('check-phone-availability')
     @ApiResponse({
         status: 200,
         description: 'Check phone number availability',
         type: LoggedUserResponse,
     })
     @ApiResponse({ status: 400, description: 'Bad request' })
-    checkPhone(@Body() checkPhoneDto: CheckPhoneDto) {
-        return this.authService.checkPhone(checkPhoneDto);
+    checkPhoneAvailability(@Body() checkPhoneDto: BasicPhoneDto) {
+        return this.authService.checkPhoneAvailability(checkPhoneDto);
     }
 
     @Get('renew-tokens')
@@ -52,7 +53,6 @@ export class AuthController {
         description: 'Renew authentication tokens',
         type: LoggedUserResponse,
     })
-    @ApiResponse({ status: 403, description: 'Forbidden. Action not allowed.' })
     @ApiResponse({ status: 401, description: 'Unauthorized. Invalid token.' })
     checkAuthStatus(
         @GetUserByRefresh() user: User,
@@ -72,7 +72,6 @@ export class AuthController {
         description: 'Update user',
         type: UpdateUserDataDto,
     })
-    @ApiResponse({ status: 403, description: 'Forbidden. Action not allowed.' })
     @ApiResponse({ status: 401, description: 'Unauthorized. Invalid token.' })
     updateUser(
         @Body() updateUserDataDto: UpdateUserDataDto,
@@ -87,9 +86,30 @@ export class AuthController {
         status: 200,
         description: 'Close user session',
     })
-    @ApiResponse({ status: 403, description: 'Forbidden. Action not allowed.' })
     @ApiResponse({ status: 401, description: 'Unauthorized. Invalid token.' })
     closeSession(@GetUser() user: User) {
         return this.authService.closeSession(user);
+    }
+
+    @Post('send-verification-sms')
+    @ApiResponse({
+        status: 200,
+        description: 'Send verification SMS',
+        type: LoggedUserResponse,
+    })
+    @ApiResponse({ status: 401, description: 'Unauthorized. Invalid token.' })
+    sendVerificationSMS(@Body() basicPhoneDto: BasicPhoneDto) {
+        return this.authService.sendVerificationSMS(basicPhoneDto);
+    }
+
+    @Post('verify-sms-code')
+    @ApiResponse({
+        status: 200,
+        description: 'Verify SMS code',
+        type: LoggedUserResponse,
+    })
+    @ApiResponse({ status: 401, description: 'Unauthorized. Invalid token.' })
+    verifySMSCode(@Body() verifyPhoneDto: VerifyPhoneDto) {
+        return this.authService.verifySMSCode(verifyPhoneDto);
     }
 }

@@ -4,10 +4,13 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 
 import { AuthModule } from './auth/auth.module';
 import { ChatModule } from './chat/chat.module';
+import { TwilioModule } from './utils/sms/twilio.module';
 
 @Module({
     imports: [
-        ConfigModule.forRoot(),
+        ConfigModule.forRoot({
+            isGlobal: true,
+        }),
         TypeOrmModule.forRoot({
             type: 'postgres',
             host: process.env.DB_HOST,
@@ -21,6 +24,7 @@ import { ChatModule } from './chat/chat.module';
         }),
         AuthModule,
         ChatModule,
+        TwilioModule,
     ],
 })
 export class AppModule {}

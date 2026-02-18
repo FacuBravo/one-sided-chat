@@ -12,12 +12,14 @@ import { Repository } from 'typeorm';
 import { User } from './entities/user.entity';
 import { JwtPayload } from './interfaces/jwt-payload.interface';
 import {
-    CheckPhoneDto,
+    BasicPhoneDto,
     CreateUserDto,
     LoggedUserResponse,
     UpdateUserDataDto,
+    VerifyPhoneDto,
 } from './dto';
 import { normalizePhone } from 'src/utils/functions';
+import { TwilioService } from 'src/utils/sms/twilio.service';
 
 @Injectable()
 export class AuthService {
@@ -27,6 +29,7 @@ export class AuthService {
         @InjectRepository(User)
         private readonly userRepository: Repository<User>,
         private readonly jwtService: JwtService,
+        private readonly twilioService: TwilioService,
     ) {}
 
     async create(createUserDto: CreateUserDto) {
@@ -68,7 +71,7 @@ export class AuthService {
         }
     }
 
-    async checkPhone(checkPhoneDto: CheckPhoneDto) {
+    async checkPhoneAvailability(checkPhoneDto: BasicPhoneDto) {
         const normalizedPhone = normalizePhone(
             checkPhoneDto.phone,
             checkPhoneDto.countryCode,
@@ -133,6 +136,51 @@ export class AuthService {
             return {
                 ...updateUserDataDto,
             };
+        } catch (error) {
+            this.handleErrors(error);
+        }
+    }
+
+    async sendVerificationSMS(basicPhoneDto: BasicPhoneDto) {
+        try {
+            const { phone_e164 } = normalizePhone(
+                basicPhoneDto.phone,
+                basicPhoneDto.countryCode,
+            );
+
+            return await this.twilioService.sendVerificationSMS(phone_e164);
+        } catch (error) {
+            this.handleErrors(error);
+        }
+    }
+
+    async verifySMSCode(verifyPhoneDto: VerifyPhoneDto) {
+        try {
+            const { phone_e164 } = normalizePhone(
+                verifyPhoneDto.phone,
+                verifyPhoneDto.countryCode,
+            );
+
+            const response = await this.twilioService.verifySMSCode(
+                phone_e164,
+                verifyPhoneDto.code,
+            );
+
+            if (!response.valid && response.status === 'pending') {
+                throw new BadRequestException('Verification code is not valid');
+            }
+
+            const user = await this.userRepository.findOneBy({
+                phone_e164,
+            });
+
+            if (!user) {
+                throw new BadRequestException('User not found');
+            }
+
+            await this.userRepository.update(user.id, { phoneVerified: true });
+
+            return this.renewTokens(user);
         } catch (error) {
             this.handleErrors(error);
         }
