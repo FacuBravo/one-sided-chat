@@ -42,4 +42,15 @@ export class LoggedUserResponse {
         type: 'string',
     })
     refreshToken: string;
+
+    @ApiProperty({
+        description: 'User username',
+        example: 'john_doe',
+    })
+    username: string;
+
+    @ApiProperty({
+        description: 'User phone verification status',
+    })
+    phoneVerified: boolean;
 }

@@ -57,6 +57,8 @@ export class AuthService {
                     id: user.id,
                     type: 'refresh',
                 }),
+                username: user.username,
+                phoneVerified: false,
             };
 
             await this.userRepository.update(user.id, {
@@ -83,9 +85,9 @@ export class AuthService {
             });
 
             if (user) {
-                return true;
-            } else {
                 return false;
+            } else {
+                return true;
             }
         } catch (error) {
             this.handleErrors(error);
@@ -104,6 +106,8 @@ export class AuthService {
             country: user.country_iso,
             id: user.id,
             fullName: user.fullName,
+            username: user.username,
+            phoneVerified: user.phoneVerified,
         };
 
         try {
