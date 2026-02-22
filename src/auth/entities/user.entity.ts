@@ -1,4 +1,14 @@
-import { Column, Entity, PrimaryGeneratedColumn } from 'typeorm';
+import { Chat } from 'src/chats/entities/chat.entity';
+import { Group } from 'src/groups/entities/group.entity';
+import { Invitation } from 'src/groups/entities/invitation.entity';
+import {
+    Column,
+    Entity,
+    JoinTable,
+    ManyToMany,
+    OneToMany,
+    PrimaryGeneratedColumn,
+} from 'typeorm';
 
 @Entity({ name: 'users' })
 export class User {
@@ -8,14 +18,13 @@ export class User {
     @Column({
         type: 'varchar',
         length: 50,
-        nullable: false,
     })
     fullName: string;
 
     @Column({
         type: 'varchar',
         length: 30,
-        nullable: false,
+
         unique: true,
     })
     username: string;
@@ -23,28 +32,25 @@ export class User {
     @Column({
         type: 'varchar',
         length: 5,
-        nullable: false,
     })
     country_code: string;
 
     @Column({
         type: 'varchar',
         length: 2,
-        nullable: false,
     })
     country_iso: string;
 
     @Column({
         type: 'varchar',
         length: 15,
-        nullable: false,
     })
     phone_number: string;
 
     @Column({
         type: 'varchar',
         length: 20,
-        nullable: false,
+
         unique: true,
     })
     phone_e164: string;
@@ -61,4 +67,20 @@ export class User {
         default: false,
     })
     phoneVerified: boolean;
+
+    @ManyToMany(() => Group, (group) => group.usersSenders)
+    @JoinTable()
+    groups: Group[];
+
+    @OneToMany(() => Chat, (chat) => chat.userSender)
+    chatsSender: Chat[];
+
+    @OneToMany(() => Chat, (chat) => chat.userReceiver)
+    chatsReceiver: Chat[];
+
+    @OneToMany(() => Invitation, (invitation) => invitation.userSender)
+    invitationsSent: Invitation[];
+
+    @OneToMany(() => Invitation, (invitation) => invitation.userReceiver)
+    invitationsReceived: Invitation[];
 }
