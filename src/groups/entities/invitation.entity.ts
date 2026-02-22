@@ -16,11 +16,9 @@ export class Invitation {
     @Column({
         type: 'enum',
         enum: ['pending', 'accepted', 'rejected'],
+        default: 'pending',
     })
     state: 'pending' | 'accepted' | 'rejected';
-
-    @Column({ type: 'text', nullable: true })
-    description?: string;
 
     @CreateDateColumn()
     createdAt: Date;

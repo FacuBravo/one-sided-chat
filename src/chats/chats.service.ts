@@ -22,50 +22,74 @@ export class ChatsService {
 
     async create(userSender: User, createChatDto: CreateChatDto) {
         try {
-            const { message, createGroup, phones } = createChatDto;
+            const { message, groupId, phones } = createChatDto;
 
-            if (phones.find((phone) => phone.phone === userSender.phone_e164)) {
+            if ((!phones || !phones.length) && !groupId) {
+                throw new BadRequestException('No phones or group id provided');
+            }
+
+            if (phones && phones.length && groupId) {
                 throw new BadRequestException(
-                    'You cannot send a message to yourself',
+                    'You cannot send a message to a group and a phone at the same time',
                 );
             }
 
-            const phonesE164Array = phones.map(function (item) {
-                return item.phone;
-            });
+            let chat: Chat;
 
-            const isDuplicate = phonesE164Array.some(
-                (item, index) => phonesE164Array.indexOf(item) !== index,
-            );
+            if (groupId) {
+                const group = await this.groupsService.findOne(groupId);
 
-            if (isDuplicate) {
-                throw new BadRequestException('Duplicate phone numbers found');
+                chat = this.chatRepository.create({
+                    message,
+                    group,
+                    userSender,
+                });
             }
 
-            let usersReceivers: User[] = [];
+            if (phones) {
+                if (
+                    phones.find(
+                        (phone) => phone.phone === userSender.phone_e164,
+                    )
+                ) {
+                    throw new BadRequestException(
+                        'You cannot send a message to yourself',
+                    );
+                }
 
-            if (!createGroup) {
+                const phonesE164Array = phones.map((item) => item.phone);
+
+                const isDuplicate = phonesE164Array.some(
+                    (item, index) => phonesE164Array.indexOf(item) !== index,
+                );
+
+                if (isDuplicate) {
+                    throw new BadRequestException(
+                        'Duplicate phone numbers found',
+                    );
+                }
+
                 const phones_e164 = phones.map(
                     (phone) =>
                         normalizePhone(phone.phone, phone.countryCode)
                             .phone_e164,
                 );
 
-                usersReceivers =
+                const usersReceivers =
                     await this.authService.getUsersByPhones(phones_e164);
+
+                chat = this.chatRepository.create({
+                    message,
+                    userSender,
+                    usersReceivers,
+                    isRead: Array.from(
+                        { length: usersReceivers.length },
+                        () => false,
+                    ),
+                });
             }
 
-            const chat = this.chatRepository.create({
-                message,
-                userSender,
-                usersReceivers,
-                isRead: Array.from(
-                    { length: usersReceivers.length },
-                    () => false,
-                ),
-            });
-
-            return await this.chatRepository.save(chat);
+            return await this.chatRepository.save(chat!);
         } catch (error) {
             handleErrors(this.logger, error);
         }

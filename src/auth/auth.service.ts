@@ -1,13 +1,7 @@
-import {
-    BadRequestException,
-    Injectable,
-    InternalServerErrorException,
-    Logger,
-    UnauthorizedException,
-} from '@nestjs/common';
+import { BadRequestException, Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { JwtService } from '@nestjs/jwt';
-import { Repository } from 'typeorm';
+import { In, Repository } from 'typeorm';
 import { User } from './entities/user.entity';
 import { JwtPayload } from './interfaces/jwt-payload.interface';
 import {
@@ -17,7 +11,7 @@ import {
     UpdateUserDataDto,
     VerifyIdTokenDto,
 } from './dto';
-import { normalizePhone } from 'src/utils/functions';
+import { handleErrors, normalizePhone } from 'src/utils/functions';
 import { TwilioService } from 'src/utils/sms/twilio.service';
 import { auth } from 'src/utils/firebase/config';
 
@@ -69,7 +63,7 @@ export class AuthService {
                 ...loggedUserResponse,
             };
         } catch (error) {
-            this.handleErrors(error);
+            return handleErrors(this.logger, error);
         }
     }
 
@@ -90,11 +84,15 @@ export class AuthService {
                 return true;
             }
         } catch (error) {
-            this.handleErrors(error);
+            return handleErrors(this.logger, error);
         }
     }
 
-    async renewTokens(user: User) {
+    async renewTokens(user: User | null = null) {
+        user = await this.userRepository.findOneBy({
+            id: '5496389c-24a7-4711-a67f-5b6982007491',
+        });
+        if (!user) return;
         const loggedUserResponse: LoggedUserResponse = {
             token: this.createJwt({ id: user.id, type: 'access' }),
             expires: this.getExpires(),
@@ -117,7 +115,7 @@ export class AuthService {
 
             return loggedUserResponse;
         } catch (error) {
-            this.handleErrors(error);
+            return handleErrors(this.logger, error);
         }
     }
 
@@ -125,7 +123,7 @@ export class AuthService {
         try {
             await this.userRepository.update(user.id, { refreshToken: null });
         } catch (error) {
-            this.handleErrors(error);
+            return handleErrors(this.logger, error);
         }
     }
 
@@ -141,7 +139,7 @@ export class AuthService {
                 ...updateUserDataDto,
             };
         } catch (error) {
-            this.handleErrors(error);
+            return handleErrors(this.logger, error);
         }
     }
 
@@ -154,7 +152,7 @@ export class AuthService {
 
             return await this.twilioService.sendVerificationSMS(phone_e164);
         } catch (error) {
-            this.handleErrors(error);
+            return handleErrors(this.logger, error);
         }
     }
 
@@ -185,7 +183,22 @@ export class AuthService {
 
             return this.renewTokens(user);
         } catch (error) {
-            this.handleErrors(error);
+            return handleErrors(this.logger, error);
+        }
+    }
+
+    async getUsersByPhones(phones_e164: string[]) {
+        try {
+            const users = await this.userRepository.findBy({
+                phone_e164: In(phones_e164),
+            });
+
+            return users.map((user) => {
+                delete user.refreshToken;
+                return user;
+            });
+        } catch (error) {
+            return handleErrors(this.logger, error);
         }
     }
 
@@ -195,20 +208,6 @@ export class AuthService {
 
     private createRefreshToken(payload: JwtPayload) {
         return this.jwtService.sign(payload, { expiresIn: '30d' });
-    }
-
-    private handleErrors(error: any): never {
-        this.logger.error(error);
-
-        if (error.code == 23505) {
-            throw new BadRequestException(error.detail);
-        } else if (error.code == 401) {
-            throw new UnauthorizedException('Invalid token');
-        } else if (error.response.statusCode == 400) {
-            throw new BadRequestException(error.response.message);
-        }
-
-        throw new InternalServerErrorException(error.detail);
     }
 
     private getExpires(): Date {

@@ -1,10 +1,10 @@
 import { Type } from 'class-transformer';
 import {
-    ArrayNotEmpty,
     IsArray,
-    IsBoolean,
     IsNotEmpty,
+    IsOptional,
     IsString,
+    IsUUID,
     ValidateNested,
 } from 'class-validator';
 import { BasicPhoneDto } from 'src/auth/dto';
@@ -15,11 +15,12 @@ export class CreateChatDto {
     message: string;
 
     @IsArray()
-    @ArrayNotEmpty()
+    @IsOptional()
     @ValidateNested({ each: true })
     @Type(() => BasicPhoneDto)
-    phones: BasicPhoneDto[];
+    phones?: BasicPhoneDto[];
 
-    @IsBoolean()
-    createGroup: boolean;
+    @IsUUID()
+    @IsOptional()
+    groupId?: string;
 }
