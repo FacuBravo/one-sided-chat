@@ -3,8 +3,9 @@ import { ConfigModule } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 
 import { AuthModule } from './auth/auth.module';
-import { ChatModule } from './chat/chat.module';
 import { TwilioModule } from './utils/sms/twilio.module';
+import { ChatsModule } from './chats/chats.module';
+import { GroupsModule } from './groups/groups.module';
 
 @Module({
     imports: [
@@ -23,8 +24,9 @@ import { TwilioModule } from './utils/sms/twilio.module';
             synchronize: true,
         }),
         AuthModule,
-        ChatModule,
         TwilioModule,
+        ChatsModule,
+        GroupsModule,
     ],
 })
 export class AppModule {}
