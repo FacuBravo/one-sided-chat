@@ -1,5 +1,6 @@
 import { Type } from 'class-transformer';
 import {
+    ArrayNotEmpty,
     IsArray,
     IsNotEmpty,
     IsOptional,
@@ -18,8 +19,15 @@ export class CreateGroupDto {
     description?: string;
 
     @IsArray()
+    @ArrayNotEmpty()
     @IsOptional()
     @ValidateNested({ each: true })
     @Type(() => BasicPhoneDto)
-    phones?: BasicPhoneDto[];
+    invitedPhones?: BasicPhoneDto[];
+
+    @IsArray()
+    @ArrayNotEmpty()
+    @ValidateNested({ each: true })
+    @Type(() => BasicPhoneDto)
+    phones: BasicPhoneDto[];
 }

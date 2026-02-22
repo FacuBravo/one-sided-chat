@@ -4,7 +4,6 @@ import { Invitation } from 'src/groups/entities/invitation.entity';
 import {
     Column,
     Entity,
-    JoinTable,
     ManyToMany,
     OneToMany,
     PrimaryGeneratedColumn,
@@ -67,8 +66,10 @@ export class User {
     phoneVerified: boolean;
 
     @ManyToMany(() => Group, (group) => group.usersSenders)
-    @JoinTable()
     groups: Group[];
+
+    @ManyToMany(() => Group, (group) => group.usersReceivers)
+    groupsJoined: Group[];
 
     @OneToMany(() => Chat, (chat) => chat.userSender)
     chatsSender: Chat[];

@@ -8,6 +8,7 @@ import { User } from 'src/auth/entities/user.entity';
 import { Invitation } from './entities/invitation.entity';
 import { handleErrors, normalizePhone } from 'src/utils/functions';
 import { AuthService } from 'src/auth/auth.service';
+import { BasicPhoneDto } from 'src/auth/dto';
 
 @Injectable()
 export class GroupsService {
@@ -23,43 +24,21 @@ export class GroupsService {
 
     async create(user: User, createGroupDto: CreateGroupDto) {
         try {
-            const { name, description, phones } = createGroupDto;
+            const { name, description, invitedPhones, phones } = createGroupDto;
 
             let invitedUsers: User[] = [];
 
-            if (phones && phones.length) {
-                if (phones.find((phone) => phone.phone === user.phone_e164)) {
-                    throw new BadRequestException(
-                        'You cannot invite yourself to a group',
-                    );
-                }
-
-                const phonesE164Array = phones.map((item) => item.phone);
-
-                const isDuplicate = phonesE164Array.some(
-                    (item, index) => phonesE164Array.indexOf(item) !== index,
-                );
-
-                if (isDuplicate) {
-                    throw new BadRequestException(
-                        'Duplicate phone numbers found',
-                    );
-                }
-
-                const phones_e164 = phones.map(
-                    (phone) =>
-                        normalizePhone(phone.phone, phone.countryCode)
-                            .phone_e164,
-                );
-
-                invitedUsers =
-                    await this.authService.getUsersByPhones(phones_e164);
+            if (invitedPhones) {
+                invitedUsers = await this.getUsersByPhones(invitedPhones, user);
             }
+
+            const usersReceivers = await this.getUsersByPhones(phones, user);
 
             const group = this.groupRepository.create({
                 name,
                 description,
                 usersSenders: [user],
+                usersReceivers,
             });
 
             const savedGroup = await this.groupRepository.save(group);
@@ -104,5 +83,30 @@ export class GroupsService {
 
     remove(id: string) {
         return `This action removes a #${id} group`;
+    }
+
+    private async getUsersByPhones(phones: BasicPhoneDto[], user: User) {
+        if (phones.find((phone) => phone.phone === user.phone_e164)) {
+            throw new BadRequestException(
+                'You cannot invite yourself to a group',
+            );
+        }
+
+        const phonesE164Array = phones.map((item) => item.phone);
+
+        const isDuplicate = phonesE164Array.some(
+            (item, index) => phonesE164Array.indexOf(item) !== index,
+        );
+
+        if (isDuplicate) {
+            throw new BadRequestException('Duplicate phone numbers found');
+        }
+
+        const phones_e164 = phones.map(
+            (phone) =>
+                normalizePhone(phone.phone, phone.countryCode).phone_e164,
+        );
+
+        return await this.authService.getUsersByPhones(phones_e164);
     }
 }

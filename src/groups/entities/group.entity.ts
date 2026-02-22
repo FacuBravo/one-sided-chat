@@ -4,6 +4,7 @@ import {
     Column,
     CreateDateColumn,
     Entity,
+    JoinTable,
     ManyToMany,
     OneToMany,
     PrimaryGeneratedColumn,
@@ -24,12 +25,21 @@ export class Group {
     @CreateDateColumn()
     createdAt: Date;
 
-    @ManyToMany(() => User, (user) => user.groups)
+    @ManyToMany(() => User, (user) => user.groups, { onDelete: 'CASCADE' })
+    @JoinTable()
     usersSenders: User[];
 
-    @OneToMany(() => Chat, (chat) => chat.group)
+    @ManyToMany(() => User, (user) => user.groupsJoined, {
+        onDelete: 'CASCADE',
+    })
+    @JoinTable()
+    usersReceivers: User[];
+
+    @OneToMany(() => Chat, (chat) => chat.group, { onDelete: 'CASCADE' })
     chats: Chat[];
 
-    @OneToMany(() => Invitation, (invitation) => invitation.group)
+    @OneToMany(() => Invitation, (invitation) => invitation.group, {
+        onDelete: 'CASCADE',
+    })
     invitations: Invitation[];
 }
