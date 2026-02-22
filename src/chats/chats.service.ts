@@ -43,6 +43,7 @@ export class ChatsService {
                     message,
                     group,
                     userSender,
+                    isRead: group.usersReceivers.map(() => false),
                 });
             }
 

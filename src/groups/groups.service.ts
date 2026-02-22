@@ -68,13 +68,16 @@ export class GroupsService {
     }
 
     async findOne(id: string) {
-        const group = await this.groupRepository.findOneBy({ id });
+        const group = await this.groupRepository.find({
+            where: { id },
+            relations: ['usersSenders', 'usersReceivers'],
+        });
 
         if (!group) {
             throw new BadRequestException('Group not found');
         }
 
-        return group;
+        return group[0];
     }
 
     update(id: string, updateGroupDto: UpdateGroupDto) {
