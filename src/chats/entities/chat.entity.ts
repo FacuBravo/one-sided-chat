@@ -4,6 +4,9 @@ import {
     Column,
     CreateDateColumn,
     Entity,
+    JoinColumn,
+    JoinTable,
+    ManyToMany,
     ManyToOne,
     PrimaryGeneratedColumn,
 } from 'typeorm';
@@ -16,8 +19,8 @@ export class Chat {
     @Column({ type: 'text' })
     message: string;
 
-    @Column({ type: 'boolean', default: false })
-    isRead: boolean;
+    @Column({ type: 'boolean', array: true })
+    isRead: boolean[];
 
     @CreateDateColumn()
     createdAt: Date;
@@ -28,6 +31,7 @@ export class Chat {
     @ManyToOne(() => User, (user) => user.chatsSender, { nullable: true })
     userSender?: User;
 
-    @ManyToOne(() => User, (user) => user.chatsReceiver, { nullable: true })
-    userReceiver?: User;
+    @ManyToMany(() => User, (user) => user.chatsReceiver, { nullable: true })
+    @JoinTable()
+    usersReceivers?: User[];
 }

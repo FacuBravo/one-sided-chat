@@ -9,5 +9,6 @@ import { Invitation } from './entities/invitation.entity';
     controllers: [GroupsController],
     providers: [GroupsService],
     imports: [TypeOrmModule.forFeature([Group, Invitation])],
+    exports: [GroupsService],
 })
 export class GroupsModule {}

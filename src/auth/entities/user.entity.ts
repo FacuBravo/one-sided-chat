@@ -24,7 +24,6 @@ export class User {
     @Column({
         type: 'varchar',
         length: 30,
-
         unique: true,
     })
     username: string;
@@ -50,7 +49,6 @@ export class User {
     @Column({
         type: 'varchar',
         length: 20,
-
         unique: true,
     })
     phone_e164: string;
@@ -75,7 +73,7 @@ export class User {
     @OneToMany(() => Chat, (chat) => chat.userSender)
     chatsSender: Chat[];
 
-    @OneToMany(() => Chat, (chat) => chat.userReceiver)
+    @ManyToMany(() => Chat, (chat) => chat.usersReceivers)
     chatsReceiver: Chat[];
 
     @OneToMany(() => Invitation, (invitation) => invitation.userSender)
