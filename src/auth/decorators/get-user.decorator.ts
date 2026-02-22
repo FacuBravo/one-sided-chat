@@ -15,6 +15,8 @@ export const GetUser = createParamDecorator(
             throw new UnauthorizedException('Invalid token type');
         }
 
+        delete user.refreshToken;
+
         return !data ? user : user[data];
     },
 );

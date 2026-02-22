@@ -88,11 +88,7 @@ export class AuthService {
         }
     }
 
-    async renewTokens(user: User | null = null) {
-        user = await this.userRepository.findOneBy({
-            id: '5496389c-24a7-4711-a67f-5b6982007491',
-        });
-        if (!user) return;
+    async renewTokens(user: User) {
         const loggedUserResponse: LoggedUserResponse = {
             token: this.createJwt({ id: user.id, type: 'access' }),
             expires: this.getExpires(),
@@ -194,7 +190,6 @@ export class AuthService {
             });
 
             return users.map((user) => {
-                delete user.refreshToken;
                 return user;
             });
         } catch (error) {

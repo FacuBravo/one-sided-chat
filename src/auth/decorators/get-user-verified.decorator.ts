@@ -20,6 +20,8 @@ export const GetUserVerified = createParamDecorator(
             throw new ForbiddenException('Phone not verified');
         }
 
+        delete user.refreshToken;
+
         return !data ? user : user[data];
     },
 );

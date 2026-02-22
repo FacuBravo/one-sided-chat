@@ -27,13 +27,14 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
         payload: JwtPayload,
     ): Promise<{ user: User; type: 'access' | 'refresh' }> {
         const { id, type } = payload;
-        const user = await this.userRepository.findOneBy({ id });
+        const [user] = await this.userRepository.find({
+            where: { id },
+            select: ['refreshToken'],
+        });
 
         if (!user || !type) {
             throw new UnauthorizedException('Token not valid');
         }
-
-        delete user.refreshToken;
 
         return { user, type };
     }

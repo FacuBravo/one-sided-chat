@@ -47,7 +47,7 @@ export class AuthController {
     }
 
     @Get('renew-tokens')
-    // @Auth()
+    @Auth()
     @ApiResponse({
         status: 200,
         description: 'Renew authentication tokens',
@@ -55,14 +55,14 @@ export class AuthController {
     })
     @ApiResponse({ status: 401, description: 'Unauthorized. Invalid token.' })
     checkAuthStatus(
-        // @GetUserByRefresh() user: User,
-        // @GetRefreshToken() refreshToken: string,
+        @GetUserByRefresh() user: User,
+        @GetRefreshToken() refreshToken: string,
     ) {
-        // if (user.refreshToken !== refreshToken) {
-        //     throw new UnauthorizedException('Invalid refresh token');
-        // }
+        if (user.refreshToken !== refreshToken) {
+            throw new UnauthorizedException('Invalid refresh token');
+        }
 
-        return this.authService.renewTokens();
+        return this.authService.renewTokens(user);
     }
 
     @Patch()

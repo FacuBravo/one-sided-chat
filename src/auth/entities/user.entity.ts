@@ -56,6 +56,7 @@ export class User {
         type: 'text',
         nullable: true,
         unique: true,
+        select: false,
     })
     refreshToken?: string | null;
 
