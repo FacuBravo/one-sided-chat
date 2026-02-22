@@ -8,7 +8,6 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { JwtService } from '@nestjs/jwt';
 import { Repository } from 'typeorm';
-
 import { User } from './entities/user.entity';
 import { JwtPayload } from './interfaces/jwt-payload.interface';
 import {
@@ -16,10 +15,11 @@ import {
     CreateUserDto,
     LoggedUserResponse,
     UpdateUserDataDto,
-    VerifyPhoneDto,
+    VerifyIdTokenDto,
 } from './dto';
 import { normalizePhone } from 'src/utils/functions';
 import { TwilioService } from 'src/utils/sms/twilio.service';
+import { auth } from 'src/utils/firebase/config';
 
 @Injectable()
 export class AuthService {
@@ -158,20 +158,19 @@ export class AuthService {
         }
     }
 
-    async verifySMSCode(verifyPhoneDto: VerifyPhoneDto) {
+    async verifyIdToken(verifyIdTokenDto: VerifyIdTokenDto) {
         try {
             const { phone_e164 } = normalizePhone(
-                verifyPhoneDto.phone,
-                verifyPhoneDto.countryCode,
+                verifyIdTokenDto.phone,
+                verifyIdTokenDto.countryCode,
             );
 
-            const response = await this.twilioService.verifySMSCode(
-                phone_e164,
-                verifyPhoneDto.code,
-            );
+            const decoded = await auth.verifyIdToken(verifyIdTokenDto.idToken);
 
-            if (!response.valid && response.status === 'pending') {
-                throw new BadRequestException('Verification code is not valid');
+            const phone = decoded.phone_number;
+
+            if (phone_e164 !== phone) {
+                throw new BadRequestException('Invalid phone number');
             }
 
             const user = await this.userRepository.findOneBy({

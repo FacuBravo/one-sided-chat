@@ -16,7 +16,7 @@ import {
     CreateUserDto,
     LoggedUserResponse,
     UpdateUserDataDto,
-    VerifyPhoneDto,
+    VerifyIdTokenDto,
 } from './dto';
 import { GetUser, Auth, GetUserByRefresh, GetRefreshToken } from './decorators';
 
@@ -102,14 +102,13 @@ export class AuthController {
         return this.authService.sendVerificationSMS(basicPhoneDto);
     }
 
-    @Post('verify-sms-code')
+    @Post('verify-id-token')
     @ApiResponse({
         status: 200,
-        description: 'Verify SMS code',
+        description: 'Verify ID token',
         type: LoggedUserResponse,
     })
-    @ApiResponse({ status: 401, description: 'Unauthorized. Invalid token.' })
-    verifySMSCode(@Body() verifyPhoneDto: VerifyPhoneDto) {
-        return this.authService.verifySMSCode(verifyPhoneDto);
+    verifyIdToken(@Body() verifyIdTokenDto: VerifyIdTokenDto) {
+        return this.authService.verifyIdToken(verifyIdTokenDto);
     }
 }
