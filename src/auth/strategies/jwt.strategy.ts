@@ -29,7 +29,17 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
         const { id, type } = payload;
         const [user] = await this.userRepository.find({
             where: { id },
-            select: ['refreshToken'],
+            select: [
+                'id',
+                'fullName',
+                'username',
+                'country_code',
+                'country_iso',
+                'phone_number',
+                'phone_e164',
+                'refreshToken',
+                'phoneVerified',
+            ],
         });
 
         if (!user || !type) {

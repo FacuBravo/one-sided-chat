@@ -29,6 +29,8 @@ export class Invitation {
     @ManyToOne(() => User, (user) => user.invitationsReceived)
     userReceiver: User;
 
-    @ManyToOne(() => Group, (group) => group.invitations)
+    @ManyToOne(() => Group, (group) => group.invitations, {
+        onDelete: 'CASCADE',
+    })
     group: Group;
 }
