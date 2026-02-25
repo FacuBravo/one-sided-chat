@@ -1,4 +1,10 @@
-import { BadRequestException, Injectable, Logger } from '@nestjs/common';
+import {
+    BadRequestException,
+    forwardRef,
+    Inject,
+    Injectable,
+    Logger,
+} from '@nestjs/common';
 import { CreateMessageDto } from './dto/create-message.dto';
 import { UpdateMessageDto } from './dto/update-message.dto';
 import { User } from 'src/auth/entities/user.entity';
@@ -8,6 +14,7 @@ import { Message } from './entities/message.entity';
 import { handleErrors } from 'src/utils/functions';
 import { ConversationService } from 'src/conversation/conversation.service';
 import { Conversation } from 'src/conversation/entities/conversation.entity';
+import { MessageResponseDto } from './dto/message.response';
 
 @Injectable()
 export class MessageService {
@@ -16,6 +23,7 @@ export class MessageService {
     constructor(
         @InjectRepository(Message)
         private readonly messageRepository: Repository<Message>,
+        @Inject(forwardRef(() => ConversationService))
         private readonly conversationService: ConversationService,
     ) {}
 
@@ -69,15 +77,21 @@ export class MessageService {
         return `This action returns all message`;
     }
 
-    findOne(id: number) {
-        return `This action returns a #${id} message`;
+    async findOne(id: string): Promise<MessageResponseDto> {
+        const message = await this.messageRepository.findOneBy({ id });
+
+        if (!message) {
+            throw new BadRequestException('Message not found');
+        }
+
+        return message;
     }
 
-    update(id: number, updateMessageDto: UpdateMessageDto) {
+    update(id: string, updateMessageDto: UpdateMessageDto) {
         return `This action updates a #${id} message`;
     }
 
-    remove(id: number) {
+    remove(id: string) {
         return `This action removes a #${id} message`;
     }
 }

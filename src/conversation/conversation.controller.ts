@@ -27,8 +27,8 @@ export class ConversationController {
     }
 
     @Get()
-    findAll() {
-        return this.conversationService.findAll();
+    findAll(@GetUserVerified() user: User) {
+        return this.conversationService.findAll(user);
     }
 
     @Get(':id')

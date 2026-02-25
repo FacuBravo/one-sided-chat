@@ -5,6 +5,7 @@ import {
     Column,
     CreateDateColumn,
     Entity,
+    JoinTable,
     ManyToMany,
     OneToMany,
     PrimaryGeneratedColumn,
@@ -37,9 +38,11 @@ export class Conversation {
     messages: Message[];
 
     @ManyToMany(() => User, (user) => user.conversationsSenders)
+    @JoinTable()
     usersSenders: User[];
 
     @ManyToMany(() => User, (user) => user.conversationsReceivers)
+    @JoinTable()
     usersReceivers: User[];
 
     @OneToMany(() => Invitation, (invitation) => invitation.conversation)

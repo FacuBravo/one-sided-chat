@@ -1,5 +1,7 @@
 import {
     BadRequestException,
+    forwardRef,
+    Inject,
     Injectable,
     Logger,
     NotFoundException,
@@ -14,6 +16,8 @@ import { Invitation } from './entities/invitation.entity';
 import { User } from 'src/auth/entities/user.entity';
 import { AuthService } from 'src/auth/auth.service';
 import { BasicPhoneDto } from 'src/auth/dto';
+import { MessageService } from 'src/message/message.service';
+import { conversationsMapper } from './mappers/conversations.mapper';
 
 @Injectable()
 export class ConversationService {
@@ -25,6 +29,8 @@ export class ConversationService {
         @InjectRepository(Invitation)
         private readonly invitationRepository: Repository<Invitation>,
         private readonly authService: AuthService,
+        @Inject(forwardRef(() => MessageService))
+        private readonly messageService: MessageService,
     ) {}
 
     async create(user: User, createConversationDto: CreateConversationDto) {
@@ -78,8 +84,44 @@ export class ConversationService {
         }
     }
 
-    findAll() {
-        return `This action returns all conversation`;
+    async findAll(user: User) {
+        try {
+            const conversations = await this.conversationRepository.find({
+                relations: ['usersReceivers', 'usersSenders'],
+                where: [
+                    {
+                        usersReceivers: {
+                            id: user.id,
+                        },
+                    },
+                    {
+                        usersSenders: {
+                            id: user.id,
+                        },
+                    },
+                ],
+                order: {
+                    createdAt: 'DESC',
+                    name: 'ASC',
+                },
+            });
+
+            const lastMessages = await Promise.all(
+                conversations.map((conversation) => {
+                    if (conversation.lastMessageId) {
+                        return this.messageService.findOne(
+                            conversation.lastMessageId,
+                        );
+                    }
+
+                    return null;
+                }),
+            );
+
+            return conversationsMapper(conversations, lastMessages);
+        } catch (error) {
+            return handleErrors(this.logger, error);
+        }
     }
 
     async findOne(id: string) {

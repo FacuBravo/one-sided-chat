@@ -4,7 +4,6 @@ import { Message } from 'src/message/entities/message.entity';
 import {
     Column,
     Entity,
-    JoinTable,
     ManyToMany,
     OneToMany,
     PrimaryGeneratedColumn,
@@ -77,13 +76,11 @@ export class User {
     messages: Message[];
 
     @ManyToMany(() => Conversation, (conversation) => conversation.usersSenders)
-    @JoinTable()
     conversationsSenders: Conversation[];
 
     @ManyToMany(
         () => Conversation,
         (conversation) => conversation.usersReceivers,
     )
-    @JoinTable()
     conversationsReceivers: Conversation[];
 }
