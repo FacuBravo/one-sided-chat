@@ -52,7 +52,14 @@ export class MessageService {
                 readBy: [],
             });
 
-            return await this.messageRepository.save(message);
+            const savedMessage = await this.messageRepository.save(message);
+
+            await this.conversationService.updateLastMessage(
+                conversation.id,
+                savedMessage.id,
+            );
+
+            return savedMessage;
         } catch (error) {
             return handleErrors(this.logger, error);
         }

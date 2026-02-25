@@ -98,6 +98,18 @@ export class ConversationService {
         return `This action updates a #${id} conversation`;
     }
 
+    async updateLastMessage(id: string, lastMessageId: string) {
+        try {
+            const res = await this.conversationRepository.update(id, {
+                lastMessageId,
+            });
+
+            return res.affected;
+        } catch (error) {
+            return handleErrors(this.logger, error);
+        }
+    }
+
     remove(id: string) {
         return `This action removes a #${id} conversation`;
     }
