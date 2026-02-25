@@ -1,6 +1,7 @@
 import { Chat } from 'src/chats/entities/chat.entity';
 import { Group } from 'src/groups/entities/group.entity';
 import { Invitation } from 'src/groups/entities/invitation.entity';
+import { Message } from 'src/message/entities/message.entity';
 import {
     Column,
     Entity,
@@ -83,4 +84,7 @@ export class User {
 
     @OneToMany(() => Invitation, (invitation) => invitation.userReceiver)
     invitationsReceived: Invitation[];
+
+    @OneToMany(() => Message, (message) => message.userSender)
+    messages: Message[];
 }
