@@ -31,7 +31,7 @@ export class Conversation {
     description?: string;
 
     @Column({ nullable: true })
-    lastMessageId: string;
+    lastMessageId?: string;
 
     @OneToMany(() => Message, (message) => message.conversation)
     messages: Message[];
