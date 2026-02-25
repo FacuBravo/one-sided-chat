@@ -1,4 +1,5 @@
 import { User } from 'src/auth/entities/user.entity';
+import { Conversation } from 'src/conversation/entities/conversation.entity';
 import {
     Column,
     CreateDateColumn,
@@ -21,6 +22,11 @@ export class Message {
     @Column({ type: 'uuid', array: true })
     readBy: string[];
 
-    @ManyToOne(() => User, (user) => user.messages, { onDelete: 'CASCADE' })
+    @ManyToOne(() => User, (user) => user.messages)
     userSender: User;
+
+    @ManyToOne(() => Conversation, (conversation) => conversation.messages, {
+        onDelete: 'CASCADE',
+    })
+    conversation: Conversation;
 }
