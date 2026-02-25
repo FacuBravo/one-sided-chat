@@ -6,7 +6,7 @@ import {
     ManyToOne,
     PrimaryGeneratedColumn,
 } from 'typeorm';
-import { Group } from './group.entity';
+import { Conversation } from 'src/conversation/entities/conversation.entity';
 
 @Entity('invitations')
 export class Invitation {
@@ -29,8 +29,8 @@ export class Invitation {
     @ManyToOne(() => User, (user) => user.invitationsReceived)
     userReceiver: User;
 
-    @ManyToOne(() => Group, (group) => group.invitations, {
+    @ManyToOne(() => Conversation, (conversation) => conversation.invitations, {
         onDelete: 'CASCADE',
     })
-    group: Group;
+    conversation: Conversation;
 }

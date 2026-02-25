@@ -4,8 +4,6 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 
 import { AuthModule } from './auth/auth.module';
 import { TwilioModule } from './utils/sms/twilio.module';
-import { ChatsModule } from './chats/chats.module';
-import { GroupsModule } from './groups/groups.module';
 import { MessageModule } from './message/message.module';
 import { ConversationModule } from './conversation/conversation.module';
 
@@ -27,8 +25,6 @@ import { ConversationModule } from './conversation/conversation.module';
         }),
         AuthModule,
         TwilioModule,
-        ChatsModule,
-        GroupsModule,
         MessageModule,
         ConversationModule,
     ],

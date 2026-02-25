@@ -1,4 +1,5 @@
 import { User } from 'src/auth/entities/user.entity';
+import { Invitation } from 'src/conversation/entities/invitation.entity';
 import { Message } from 'src/message/entities/message.entity';
 import {
     Column,
@@ -40,4 +41,7 @@ export class Conversation {
 
     @ManyToMany(() => User, (user) => user.conversationsReceivers)
     usersReceivers: User[];
+
+    @OneToMany(() => Invitation, (invitation) => invitation.conversation)
+    invitations: Invitation[];
 }

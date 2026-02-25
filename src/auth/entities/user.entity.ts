@@ -1,7 +1,5 @@
-import { Chat } from 'src/chats/entities/chat.entity';
 import { Conversation } from 'src/conversation/entities/conversation.entity';
-import { Group } from 'src/groups/entities/group.entity';
-import { Invitation } from 'src/groups/entities/invitation.entity';
+import { Invitation } from 'src/conversation/entities/invitation.entity';
 import { Message } from 'src/message/entities/message.entity';
 import {
     Column,
@@ -68,18 +66,6 @@ export class User {
         default: false,
     })
     phoneVerified: boolean;
-
-    @ManyToMany(() => Group, (group) => group.usersSenders)
-    groups: Group[];
-
-    @ManyToMany(() => Group, (group) => group.usersReceivers)
-    groupsJoined: Group[];
-
-    @OneToMany(() => Chat, (chat) => chat.userSender)
-    chatsSender: Chat[];
-
-    @ManyToMany(() => Chat, (chat) => chat.usersReceivers)
-    chatsReceiver: Chat[];
 
     @OneToMany(() => Invitation, (invitation) => invitation.userSender)
     invitationsSent: Invitation[];
