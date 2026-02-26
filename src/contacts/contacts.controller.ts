@@ -27,8 +27,8 @@ export class ContactsController {
     }
 
     @Get()
-    findAll() {
-        return this.contactsService.findAll();
+    findAll(@GetUserVerified() user: User) {
+        return this.contactsService.findAll(user);
     }
 
     @Get(':id')

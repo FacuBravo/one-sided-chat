@@ -22,7 +22,7 @@ export class Conversation {
     })
     type: 'group' | 'private' | 'list';
 
-    @CreateDateColumn()
+    @CreateDateColumn({ type: 'timestamptz' })
     createdAt: Date;
 
     @Column({ nullable: true, type: 'varchar', length: 50 })

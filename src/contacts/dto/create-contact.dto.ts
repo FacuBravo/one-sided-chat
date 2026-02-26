@@ -2,6 +2,7 @@ import { Type } from 'class-transformer';
 import {
     IsNotEmpty,
     IsNotEmptyObject,
+    IsOptional,
     IsString,
     MaxLength,
     ValidateNested,
@@ -10,9 +11,9 @@ import { BasicPhoneDto } from 'src/auth/dto';
 
 export class CreateContactDto {
     @IsString()
-    @IsNotEmpty()
+    @IsOptional()
     @MaxLength(50)
-    name: string;
+    name?: string;
 
     @IsNotEmptyObject()
     @ValidateNested()

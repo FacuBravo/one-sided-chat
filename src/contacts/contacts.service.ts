@@ -59,8 +59,21 @@ export class ContactsService {
         }
     }
 
-    findAll() {
-        return `This action returns all contacts`;
+    async findAll(user: User) {
+        try {
+            const contacts = await this.contactRepository.find({
+                where: { user },
+                relations: ['referencedUser'],
+                order: { name: 'ASC', referencedUser: { fullName: 'ASC' } },
+            });
+
+            return contacts.map((contact) => ({
+                ...contact,
+                referencedUser: usersMapper([contact.referencedUser])[0],
+            }));
+        } catch (error) {
+            return handleErrors(this.logger, error);
+        }
     }
 
     findOne(id: string) {

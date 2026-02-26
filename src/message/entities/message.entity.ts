@@ -16,7 +16,7 @@ export class Message {
     @Column({ type: 'text' })
     text: string;
 
-    @CreateDateColumn()
+    @CreateDateColumn({ type: 'timestamptz' })
     createdAt: Date;
 
     @Column({ type: 'uuid', array: true })

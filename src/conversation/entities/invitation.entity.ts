@@ -20,7 +20,7 @@ export class Invitation {
     })
     state: 'pending' | 'accepted' | 'rejected';
 
-    @CreateDateColumn()
+    @CreateDateColumn({ type: 'timestamptz' })
     createdAt: Date;
 
     @ManyToOne(() => User)
