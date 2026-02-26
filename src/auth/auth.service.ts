@@ -184,14 +184,10 @@ export class AuthService {
         }
     }
 
-    async getUsersByPhones(phones_e164: string[]) {
+    getUsersByPhones(phones_e164: string[]) {
         try {
-            const users = await this.userRepository.findBy({
+            return this.userRepository.findBy({
                 phone_e164: In(phones_e164),
-            });
-
-            return users.map((user) => {
-                return user;
             });
         } catch (error) {
             return handleErrors(this.logger, error);

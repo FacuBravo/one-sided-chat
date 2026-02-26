@@ -18,6 +18,7 @@ import { AuthService } from 'src/auth/auth.service';
 import { BasicPhoneDto } from 'src/auth/dto';
 import { MessageService } from 'src/message/message.service';
 import { conversationsMapper } from './mappers/conversations.mapper';
+import { ContactsService } from 'src/contacts/contacts.service';
 
 @Injectable()
 export class ConversationService {
@@ -31,6 +32,7 @@ export class ConversationService {
         private readonly authService: AuthService,
         @Inject(forwardRef(() => MessageService))
         private readonly messageService: MessageService,
+        private readonly contactsService: ContactsService,
     ) {}
 
     async create(user: User, createConversationDto: CreateConversationDto) {
@@ -118,7 +120,15 @@ export class ConversationService {
                 }),
             );
 
-            return conversationsMapper(conversations, lastMessages);
+            const receiversIds = conversations
+                .map((conversation) => conversation.usersReceivers)
+                .flat()
+                .map((user) => user.id);
+
+            const contacts =
+                await this.contactsService.findByUsers(receiversIds);
+
+            return conversationsMapper(conversations, lastMessages, contacts);
         } catch (error) {
             return handleErrors(this.logger, error);
         }
@@ -156,7 +166,7 @@ export class ConversationService {
         return `This action removes a #${id} conversation`;
     }
 
-    private async getUsersByPhones(phones: BasicPhoneDto[], user: User) {
+    private getUsersByPhones(phones: BasicPhoneDto[], user: User) {
         if (phones.find((phone) => phone.phone === user.phone_e164)) {
             throw new BadRequestException(
                 'You cannot send a message to yourself',
@@ -178,6 +188,6 @@ export class ConversationService {
                 normalizePhone(phone.phone, phone.countryCode).phone_e164,
         );
 
-        return await this.authService.getUsersByPhones(phones_e164);
+        return this.authService.getUsersByPhones(phones_e164);
     }
 }

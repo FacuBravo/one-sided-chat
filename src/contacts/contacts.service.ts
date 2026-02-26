@@ -2,11 +2,13 @@ import { BadRequestException, Injectable, Logger } from '@nestjs/common';
 import { CreateContactDto } from './dto/create-contact.dto';
 import { UpdateContactDto } from './dto/update-contact.dto';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { In, Repository } from 'typeorm';
 import { Contact } from './entities/contact.entity';
 import { handleErrors, normalizePhone } from 'src/utils/functions';
 import { AuthService } from 'src/auth/auth.service';
 import { User } from 'src/auth/entities/user.entity';
+import { usersMapper } from 'src/auth/mappers/user.mapper';
+import { ContactResponseDto } from './dto/contact.response';
 
 @Injectable()
 export class ContactsService {
@@ -71,6 +73,20 @@ export class ContactsService {
 
     remove(id: string) {
         return `This action removes a #${id} contact`;
+    }
+
+    async findByUsers(
+        referencedUsers: string[],
+    ): Promise<ContactResponseDto[]> {
+        const contacts = await this.contactRepository.find({
+            where: { referencedUser: { id: In(referencedUsers) } },
+            relations: ['referencedUser'],
+        });
+
+        return contacts.map((contact) => ({
+            ...contact,
+            referencedUser: usersMapper([contact.referencedUser])[0],
+        }));
     }
 
     private getContactByUser(user: User, referencedUserId: string) {
