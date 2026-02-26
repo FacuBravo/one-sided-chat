@@ -6,6 +6,7 @@ import { AuthModule } from './auth/auth.module';
 import { TwilioModule } from './utils/sms/twilio.module';
 import { MessageModule } from './message/message.module';
 import { ConversationModule } from './conversation/conversation.module';
+import { ContactsModule } from './contacts/contacts.module';
 
 @Module({
     imports: [
@@ -27,6 +28,7 @@ import { ConversationModule } from './conversation/conversation.module';
         TwilioModule,
         MessageModule,
         ConversationModule,
+        ContactsModule,
     ],
 })
 export class AppModule {}

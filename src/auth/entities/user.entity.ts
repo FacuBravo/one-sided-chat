@@ -1,3 +1,4 @@
+import { Contact } from 'src/contacts/entities/contact.entity';
 import { Conversation } from 'src/conversation/entities/conversation.entity';
 import { Invitation } from 'src/conversation/entities/invitation.entity';
 import { Message } from 'src/message/entities/message.entity';
@@ -6,6 +7,7 @@ import {
     Entity,
     ManyToMany,
     OneToMany,
+    OneToOne,
     PrimaryGeneratedColumn,
 } from 'typeorm';
 
@@ -83,4 +85,10 @@ export class User {
         (conversation) => conversation.usersReceivers,
     )
     conversationsReceivers: Conversation[];
+
+    @OneToOne(() => Contact, (contact) => contact.referedUser)
+    contact: Contact;
+
+    @OneToMany(() => Contact, (contact) => contact.user)
+    contacts: Contact[];
 }
