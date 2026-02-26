@@ -1,15 +1,5 @@
-import { Contact } from 'src/contacts/entities/contact.entity';
 import { Conversation } from 'src/conversation/entities/conversation.entity';
-import { Invitation } from 'src/conversation/entities/invitation.entity';
-import { Message } from 'src/message/entities/message.entity';
-import {
-    Column,
-    Entity,
-    ManyToMany,
-    OneToMany,
-    OneToOne,
-    PrimaryGeneratedColumn,
-} from 'typeorm';
+import { Column, Entity, ManyToMany, PrimaryGeneratedColumn } from 'typeorm';
 
 @Entity({ name: 'users' })
 export class User {
@@ -68,15 +58,6 @@ export class User {
     })
     phoneVerified: boolean;
 
-    @OneToMany(() => Invitation, (invitation) => invitation.userSender)
-    invitationsSent: Invitation[];
-
-    @OneToMany(() => Invitation, (invitation) => invitation.userReceiver)
-    invitationsReceived: Invitation[];
-
-    @OneToMany(() => Message, (message) => message.userSender)
-    messages: Message[];
-
     @ManyToMany(() => Conversation, (conversation) => conversation.usersSenders)
     conversationsSenders: Conversation[];
 
@@ -85,10 +66,4 @@ export class User {
         (conversation) => conversation.usersReceivers,
     )
     conversationsReceivers: Conversation[];
-
-    @OneToOne(() => Contact, (contact) => contact.referedUser)
-    contact: Contact;
-
-    @OneToMany(() => Contact, (contact) => contact.user)
-    contacts: Contact[];
 }

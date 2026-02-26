@@ -23,10 +23,10 @@ export class Invitation {
     @CreateDateColumn()
     createdAt: Date;
 
-    @ManyToOne(() => User, (user) => user.invitationsSent)
+    @ManyToOne(() => User)
     userSender: User;
 
-    @ManyToOne(() => User, (user) => user.invitationsReceived)
+    @ManyToOne(() => User)
     userReceiver: User;
 
     @ManyToOne(() => Conversation, (conversation) => conversation.invitations, {

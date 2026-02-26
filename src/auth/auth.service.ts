@@ -14,6 +14,7 @@ import {
 import { handleErrors, normalizePhone } from 'src/utils/functions';
 import { TwilioService } from 'src/utils/sms/twilio.service';
 import { auth } from 'src/utils/firebase/config';
+import { usersMapper } from './mappers/user.mapper';
 
 @Injectable()
 export class AuthService {
@@ -192,6 +193,22 @@ export class AuthService {
             return users.map((user) => {
                 return user;
             });
+        } catch (error) {
+            return handleErrors(this.logger, error);
+        }
+    }
+
+    async getUserByPhone(phone_e164: string) {
+        try {
+            const user = await this.userRepository.findOneBy({
+                phone_e164: phone_e164,
+            });
+
+            if (!user) {
+                throw new BadRequestException('User not found');
+            }
+
+            return usersMapper([user])[0];
         } catch (error) {
             return handleErrors(this.logger, error);
         }

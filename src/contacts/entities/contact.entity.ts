@@ -2,6 +2,7 @@ import { User } from 'src/auth/entities/user.entity';
 import {
     Column,
     Entity,
+    JoinColumn,
     ManyToOne,
     OneToOne,
     PrimaryGeneratedColumn,
@@ -15,9 +16,9 @@ export class Contact {
     @Column({ type: 'varchar', length: 50 })
     name?: string;
 
-    @ManyToOne(() => User, (user) => user.contact)
+    @ManyToOne(() => User)
     user: User;
 
-    @OneToOne(() => User, (user) => user.contact)
-    referedUser: User;
+    @ManyToOne(() => User)
+    referencedUser: User;
 }

@@ -10,14 +10,20 @@ import {
 import { ContactsService } from './contacts.service';
 import { CreateContactDto } from './dto/create-contact.dto';
 import { UpdateContactDto } from './dto/update-contact.dto';
+import { Auth, GetUserVerified } from 'src/auth/decorators';
+import { User } from 'src/auth/entities/user.entity';
 
 @Controller('contacts')
+@Auth()
 export class ContactsController {
     constructor(private readonly contactsService: ContactsService) {}
 
     @Post()
-    create(@Body() createContactDto: CreateContactDto) {
-        return this.contactsService.create(createContactDto);
+    create(
+        @GetUserVerified() user: User,
+        @Body() createContactDto: CreateContactDto,
+    ) {
+        return this.contactsService.create(user, createContactDto);
     }
 
     @Get()
@@ -27,7 +33,7 @@ export class ContactsController {
 
     @Get(':id')
     findOne(@Param('id') id: string) {
-        return this.contactsService.findOne(+id);
+        return this.contactsService.findOne(id);
     }
 
     @Patch(':id')
@@ -35,11 +41,11 @@ export class ContactsController {
         @Param('id') id: string,
         @Body() updateContactDto: UpdateContactDto,
     ) {
-        return this.contactsService.update(+id, updateContactDto);
+        return this.contactsService.update(id, updateContactDto);
     }
 
     @Delete(':id')
     remove(@Param('id') id: string) {
-        return this.contactsService.remove(+id);
+        return this.contactsService.remove(id);
     }
 }

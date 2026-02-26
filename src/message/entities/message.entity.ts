@@ -22,7 +22,7 @@ export class Message {
     @Column({ type: 'uuid', array: true })
     readBy: string[];
 
-    @ManyToOne(() => User, (user) => user.messages)
+    @ManyToOne(() => User)
     userSender: User;
 
     @ManyToOne(() => Conversation, (conversation) => conversation.messages, {
