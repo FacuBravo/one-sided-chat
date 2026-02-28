@@ -7,13 +7,14 @@ import {
 import { CreateContactDto } from './dto/create-contact.dto';
 import { UpdateContactDto } from './dto/update-contact.dto';
 import { InjectRepository } from '@nestjs/typeorm';
-import { In, Repository } from 'typeorm';
+import { In, QueryDeepPartialEntity, Repository } from 'typeorm';
 import { Contact } from './entities/contact.entity';
 import { handleErrors, normalizePhone } from 'src/utils/functions';
 import { AuthService } from 'src/auth/auth.service';
 import { User } from 'src/auth/entities/user.entity';
 import { usersMapper } from 'src/auth/mappers/user.mapper';
 import { ContactResponseDto } from './dto/contact.response';
+import { BasicPhoneDto, UserResponseDto } from 'src/auth/dto';
 
 @Injectable()
 export class ContactsService {
@@ -29,28 +30,7 @@ export class ContactsService {
         try {
             const { name, phone } = createContactDto;
 
-            if (phone.phone === user.phone_e164) {
-                throw new BadRequestException(
-                    'You cannot create a contact with yourself',
-                );
-            }
-
-            const phones_e164 = normalizePhone(
-                phone.phone,
-                phone.countryCode,
-            ).phone_e164;
-
-            const referencedUser =
-                await this.authService.getUserByPhone(phones_e164);
-
-            const existingContact = await this.getContactByUser(
-                user,
-                referencedUser.id,
-            );
-
-            if (existingContact) {
-                throw new BadRequestException('Contact already exists');
-            }
+            const referencedUser = await this.checkContactPhone(user, phone);
 
             const contact = this.contactRepository.create({
                 name,
@@ -81,8 +61,45 @@ export class ContactsService {
         }
     }
 
-    update(id: string, updateContactDto: UpdateContactDto) {
-        return `This action updates a #${id} contact`;
+    async update(user: User, id: string, updateContactDto: UpdateContactDto) {
+        try {
+            const contact = await this.findOneByUser(user, id);
+
+            if (
+                !updateContactDto ||
+                Object.keys(updateContactDto).length === 0
+            ) {
+                throw new BadRequestException('No data provided for update');
+            }
+
+            const { name, phone } = updateContactDto;
+
+            let referencedUser: UserResponseDto | null = null;
+
+            if (phone) {
+                referencedUser = await this.checkContactPhone(user, phone);
+            }
+
+            let updateContact: QueryDeepPartialEntity<Contact> = {
+                name,
+            };
+
+            if (referencedUser) {
+                updateContact = {
+                    ...updateContact,
+                    referencedUser: { id: referencedUser.id },
+                };
+            }
+
+            const result = await this.contactRepository.update(
+                contact.id,
+                updateContact,
+            );
+
+            return result.affected ? result.affected > 0 : false;
+        } catch (error) {
+            return handleErrors(this.logger, error);
+        }
     }
 
     async remove(user: User, id: string) {
@@ -117,6 +134,7 @@ export class ContactsService {
     private async findOneByUser(user: User, id: string) {
         const contact = await this.contactRepository.findOne({
             where: { id, user },
+            relations: ['referencedUser'],
         });
 
         if (!contact) {
@@ -124,5 +142,32 @@ export class ContactsService {
         }
 
         return contact;
+    }
+
+    private async checkContactPhone(user: User, phone: BasicPhoneDto) {
+        if (phone.phone === user.phone_e164) {
+            throw new BadRequestException(
+                'You cannot create a contact with yourself',
+            );
+        }
+
+        const phones_e164 = normalizePhone(
+            phone.phone,
+            phone.countryCode,
+        ).phone_e164;
+
+        const referencedUser =
+            await this.authService.getUserByPhone(phones_e164);
+
+        const existingContact = await this.getContactByUser(
+            user,
+            referencedUser.id,
+        );
+
+        if (existingContact) {
+            throw new BadRequestException('Contact already exists');
+        }
+
+        return referencedUser;
     }
 }
