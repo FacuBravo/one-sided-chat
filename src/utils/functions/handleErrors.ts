@@ -3,6 +3,7 @@ import {
     UnauthorizedException,
     InternalServerErrorException,
     Logger,
+    NotFoundException,
 } from '@nestjs/common';
 
 export const handleErrors = (logger: Logger, error: any) => {
@@ -14,6 +15,8 @@ export const handleErrors = (logger: Logger, error: any) => {
         throw new UnauthorizedException('Invalid token');
     } else if (error.response.statusCode == 400) {
         throw new BadRequestException(error.response.message);
+    } else if (error.response.statusCode == 404) {
+        throw new NotFoundException(error.response.message);
     }
 
     throw new InternalServerErrorException(error.detail);

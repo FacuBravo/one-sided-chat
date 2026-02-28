@@ -1,4 +1,9 @@
-import { BadRequestException, Injectable, Logger } from '@nestjs/common';
+import {
+    BadRequestException,
+    Injectable,
+    Logger,
+    NotFoundException,
+} from '@nestjs/common';
 import { CreateContactDto } from './dto/create-contact.dto';
 import { UpdateContactDto } from './dto/update-contact.dto';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -76,16 +81,17 @@ export class ContactsService {
         }
     }
 
-    findOne(id: string) {
-        return `This action returns a #${id} contact`;
-    }
-
     update(id: string, updateContactDto: UpdateContactDto) {
         return `This action updates a #${id} contact`;
     }
 
-    remove(id: string) {
-        return `This action removes a #${id} contact`;
+    async remove(user: User, id: string) {
+        try {
+            const contact = await this.findOneByUser(user, id);
+            return await this.contactRepository.remove(contact);
+        } catch (error) {
+            return handleErrors(this.logger, error);
+        }
     }
 
     async findByUsers(
@@ -106,5 +112,17 @@ export class ContactsService {
         return this.contactRepository.findOne({
             where: { user, referencedUser: { id: referencedUserId } },
         });
+    }
+
+    private async findOneByUser(user: User, id: string) {
+        const contact = await this.contactRepository.findOne({
+            where: { id, user },
+        });
+
+        if (!contact) {
+            throw new NotFoundException('Contact not found');
+        }
+
+        return contact;
     }
 }
