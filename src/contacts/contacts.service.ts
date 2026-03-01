@@ -55,6 +55,10 @@ export class ContactsService {
             return contacts.map((contact) => ({
                 ...contact,
                 referencedUser: usersMapper([contact.referencedUser])[0],
+                phone: {
+                    phone: contact.referencedUser.phone_e164,
+                    countryCode: contact.referencedUser.country_code,
+                },
             }));
         } catch (error) {
             return handleErrors(this.logger, error);

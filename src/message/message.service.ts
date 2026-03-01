@@ -13,8 +13,10 @@ import { Repository } from 'typeorm';
 import { Message } from './entities/message.entity';
 import { handleErrors } from 'src/utils/functions';
 import { ConversationService } from 'src/conversation/conversation.service';
-import { Conversation } from 'src/conversation/entities/conversation.entity';
 import { MessageResponseDto } from './dto/message.response';
+import { ConversationResponseDto } from 'src/conversation/dto/conversation.response';
+import { messagesMapper } from './mappers/messages.mapper';
+import { PaginationResponse } from 'src/utils/dtos/pagination-response';
 
 @Injectable()
 export class MessageService {
@@ -30,7 +32,7 @@ export class MessageService {
     async create(user: User, createMessageDto: CreateMessageDto) {
         try {
             const { text, phones, conversationId } = createMessageDto;
-            let conversation: Conversation;
+            let conversation: ConversationResponseDto;
 
             if ((!phones || !phones.length) && !conversationId) {
                 throw new BadRequestException(
@@ -56,7 +58,7 @@ export class MessageService {
             const message = this.messageRepository.create({
                 text,
                 userSender: user,
-                conversation: conversation,
+                conversation: { id: conversation.id },
                 readBy: [],
             });
 
@@ -85,6 +87,27 @@ export class MessageService {
         }
 
         return message;
+    }
+
+    async findAllByConversationId(
+        conversationId: string,
+        offset: number = 0,
+        limit: number = 30,
+    ): Promise<PaginationResponse<MessageResponseDto>> {
+        const [messages, total] = await this.messageRepository.findAndCount({
+            where: { conversation: { id: conversationId } },
+            order: { createdAt: 'DESC' },
+            relations: ['userSender'],
+            skip: offset,
+            take: limit,
+        });
+
+        return {
+            data: messagesMapper(messages),
+            total,
+            isLast: total <= offset + limit,
+            page: Math.floor(offset / limit),
+        };
     }
 
     update(id: string, updateMessageDto: UpdateMessageDto) {

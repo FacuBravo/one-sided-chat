@@ -17,8 +17,12 @@ import { User } from 'src/auth/entities/user.entity';
 import { AuthService } from 'src/auth/auth.service';
 import { BasicPhoneDto } from 'src/auth/dto';
 import { MessageService } from 'src/message/message.service';
-import { conversationsMapper } from './mappers/conversations.mapper';
+import {
+    conversationsMapper,
+    fullConversationMapper,
+} from './mappers/conversations.mapper';
 import { ContactsService } from 'src/contacts/contacts.service';
+import { PaginationDto } from 'src/utils/dtos/pagination.dto';
 
 @Injectable()
 export class ConversationService {
@@ -80,7 +84,14 @@ export class ConversationService {
                 await this.invitationRepository.save(invitations);
             }
 
-            return savedConversation;
+            const receiversIds = savedConversation.usersReceivers
+                .flat()
+                .map((user) => user.id);
+
+            const contacts =
+                await this.contactsService.findByUsers(receiversIds);
+
+            return conversationsMapper([savedConversation], contacts)[0];
         } catch (error) {
             return handleErrors(this.logger, error);
         }
@@ -128,22 +139,78 @@ export class ConversationService {
             const contacts =
                 await this.contactsService.findByUsers(receiversIds);
 
-            return conversationsMapper(conversations, lastMessages, contacts);
+            return conversationsMapper(conversations, contacts, lastMessages);
+        } catch (error) {
+            return handleErrors(this.logger, error);
+        }
+    }
+
+    async findAllMessages(
+        user: User,
+        id: string,
+        paginationDto: PaginationDto,
+    ) {
+        try {
+            const conversation = await this.conversationRepository.findOne({
+                where: [{ id }],
+                relations: ['usersReceivers', 'usersSenders'],
+            });
+
+            if (!conversation) {
+                throw new NotFoundException('Conversation not found');
+            }
+
+            const receiversIds = conversation.usersReceivers
+                .flat()
+                .map((user) => user.id);
+
+            const sendersIds = conversation.usersSenders
+                .flat()
+                .map((user) => user.id);
+
+            if (
+                !receiversIds.includes(user.id) &&
+                !sendersIds.includes(user.id)
+            ) {
+                throw new NotFoundException('Conversation not found');
+            }
+
+            const sendersContacts =
+                await this.contactsService.findByUsers(sendersIds);
+
+            const receiversContacts =
+                await this.contactsService.findByUsers(receiversIds);
+
+            const messages = await this.messageService.findAllByConversationId(
+                id,
+                paginationDto.offset,
+                paginationDto.limit,
+            );
+
+            return fullConversationMapper(
+                conversation,
+                messages,
+                receiversContacts,
+                sendersContacts,
+            );
         } catch (error) {
             return handleErrors(this.logger, error);
         }
     }
 
     async findOne(id: string) {
-        const conversation = await this.conversationRepository.findOneBy({
-            id,
+        const conversation = await this.conversationRepository.findOne({
+            where: {
+                id,
+            },
+            relations: ['usersReceivers', 'usersSenders'],
         });
 
         if (!conversation) {
             throw new NotFoundException('Conversation not found');
         }
 
-        return conversation;
+        return conversationsMapper([conversation])[0];
     }
 
     update(id: string, updateConversationDto: UpdateConversationDto) {

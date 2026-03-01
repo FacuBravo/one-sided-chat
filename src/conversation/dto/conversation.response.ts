@@ -7,5 +7,6 @@ export interface ConversationResponseDto {
     description?: string;
     createdAt: Date;
     lastMessage: MessageResponseDto | null;
+    usersSenders: UserResponseDto[];
     usersReceivers: UserResponseDto[];
 }

@@ -6,12 +6,15 @@ import {
     Patch,
     Param,
     Delete,
+    ParseUUIDPipe,
+    Query,
 } from '@nestjs/common';
 import { ConversationService } from './conversation.service';
 import { CreateConversationDto } from './dto/create-conversation.dto';
 import { UpdateConversationDto } from './dto/update-conversation.dto';
 import { Auth, GetUserVerified } from 'src/auth/decorators';
 import { User } from 'src/auth/entities/user.entity';
+import { PaginationDto } from 'src/utils/dtos/pagination.dto';
 
 @Controller('conversation')
 @Auth()
@@ -32,8 +35,16 @@ export class ConversationController {
     }
 
     @Get(':id')
-    findOne(@Param('id') id: string) {
-        return this.conversationService.findOne(id);
+    findAllMessages(
+        @GetUserVerified() user: User,
+        @Param('id', ParseUUIDPipe) id: string,
+        @Query() paginationDto: PaginationDto,
+    ) {
+        return this.conversationService.findAllMessages(
+            user,
+            id,
+            paginationDto,
+        );
     }
 
     @Patch(':id')
