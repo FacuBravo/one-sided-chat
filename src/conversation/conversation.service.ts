@@ -114,7 +114,7 @@ export class ConversationService {
                     },
                 ],
                 order: {
-                    createdAt: 'DESC',
+                    updatedAt: 'DESC',
                     name: 'ASC',
                 },
             });
@@ -221,6 +221,7 @@ export class ConversationService {
         try {
             const res = await this.conversationRepository.update(id, {
                 lastMessageId,
+                updatedAt: new Date(),
             });
 
             return res.affected;
