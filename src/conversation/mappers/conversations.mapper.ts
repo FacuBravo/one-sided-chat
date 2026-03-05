@@ -7,7 +7,8 @@ import { PaginationResponse } from 'src/utils/dtos/pagination-response';
 
 export const conversationsMapper = (
     conversations: Conversation[],
-    contacts: ContactResponseDto[] = [],
+    contactsReceivers: ContactResponseDto[] = [],
+    contactsSenders: ContactResponseDto[] = [],
     lastMessages: (MessageResponseDto | null)[] = [],
 ): ConversationResponseDto[] => {
     return conversations.map((conversation, index) => ({
@@ -16,8 +17,11 @@ export const conversationsMapper = (
         description: conversation.description,
         createdAt: conversation.createdAt,
         lastMessage: lastMessages[index],
-        usersSenders: usersMapper(conversation.usersSenders),
-        usersReceivers: usersMapper(conversation.usersReceivers, contacts),
+        usersSenders: usersMapper(conversation.usersSenders, contactsSenders),
+        usersReceivers: usersMapper(
+            conversation.usersReceivers,
+            contactsReceivers,
+        ),
     }));
 };
 

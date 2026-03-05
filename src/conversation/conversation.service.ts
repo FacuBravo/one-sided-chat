@@ -116,6 +116,9 @@ export class ConversationService {
                 order: {
                     updatedAt: 'DESC',
                     name: 'ASC',
+                    usersReceivers: {
+                        fullName: 'ASC',
+                    },
                 },
             });
 
@@ -136,10 +139,23 @@ export class ConversationService {
                 .flat()
                 .map((user) => user.id);
 
-            const contacts =
+            const sendersIds = conversations
+                .map((conversation) => conversation.usersSenders)
+                .flat()
+                .map((user) => user.id);
+
+            const sendersContacts =
+                await this.contactsService.findByUsers(sendersIds);
+
+            const receiversContacts =
                 await this.contactsService.findByUsers(receiversIds);
 
-            return conversationsMapper(conversations, contacts, lastMessages);
+            return conversationsMapper(
+                conversations,
+                receiversContacts,
+                sendersContacts,
+                lastMessages,
+            );
         } catch (error) {
             return handleErrors(this.logger, error);
         }
@@ -152,8 +168,13 @@ export class ConversationService {
     ) {
         try {
             const conversation = await this.conversationRepository.findOne({
-                where: [{ id }],
+                where: { id },
                 relations: ['usersReceivers', 'usersSenders'],
+                order: {
+                    usersReceivers: {
+                        fullName: 'ASC',
+                    },
+                },
             });
 
             if (!conversation) {

@@ -121,6 +121,7 @@ export class ContactsService {
         const contacts = await this.contactRepository.find({
             where: { referencedUser: { id: In(referencedUsers) } },
             relations: ['referencedUser'],
+            order: { name: 'ASC', referencedUser: { fullName: 'ASC' } },
         });
 
         return contacts.map((contact) => ({
