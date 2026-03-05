@@ -34,8 +34,8 @@ export class Conversation {
     @Column({ nullable: true })
     lastMessageId?: string;
 
-    @Column({ type: 'timestamptz' })
-    updatedAt: Date;
+    @Column({ type: 'timestamptz', nullable: true })
+    updatedAt?: Date;
 
     @OneToMany(() => Message, (message) => message.conversation)
     messages: Message[];

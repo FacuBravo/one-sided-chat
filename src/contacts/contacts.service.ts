@@ -57,7 +57,7 @@ export class ContactsService {
                 referencedUser: usersMapper([contact.referencedUser])[0],
                 phone: {
                     phone: contact.referencedUser.phone_e164,
-                    countryCode: contact.referencedUser.country_code,
+                    countryCode: contact.referencedUser.country_iso,
                 },
             }));
         } catch (error) {
