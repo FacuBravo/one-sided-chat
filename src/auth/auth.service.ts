@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable, Logger } from '@nestjs/common';
+import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { JwtService } from '@nestjs/jwt';
 import { In, QueryPartialEntity, Repository } from 'typeorm';
@@ -222,7 +222,7 @@ export class AuthService {
             });
 
             if (!user) {
-                throw new BadRequestException('User not found');
+                throw new NotFoundException('User not found');
             }
 
             return usersMapper([user])[0];
