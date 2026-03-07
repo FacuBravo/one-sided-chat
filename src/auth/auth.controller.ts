@@ -18,7 +18,13 @@ import {
     UpdateUserDataDto,
     VerifyIdTokenDto,
 } from './dto';
-import { GetUser, Auth, GetUserByRefresh, GetRefreshToken } from './decorators';
+import {
+    GetUser,
+    Auth,
+    GetUserByRefresh,
+    GetRefreshToken,
+    GetUserVerified,
+} from './decorators';
 
 @Controller('auth')
 export class AuthController {
@@ -75,7 +81,7 @@ export class AuthController {
     @ApiResponse({ status: 401, description: 'Unauthorized. Invalid token.' })
     updateUser(
         @Body() updateUserDataDto: UpdateUserDataDto,
-        @GetUser() user: User,
+        @GetUserVerified() user: User,
     ) {
         return this.authService.updateUser(updateUserDataDto, user);
     }

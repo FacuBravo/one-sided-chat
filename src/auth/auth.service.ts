@@ -1,7 +1,7 @@
 import { BadRequestException, Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { JwtService } from '@nestjs/jwt';
-import { In, Repository } from 'typeorm';
+import { In, QueryPartialEntity, Repository } from 'typeorm';
 import { User } from './entities/user.entity';
 import { JwtPayload } from './interfaces/jwt-payload.interface';
 import {
@@ -125,16 +125,37 @@ export class AuthService {
     }
 
     async updateUser(updateUserDataDto: UpdateUserDataDto, user: User) {
-        if (!updateUserDataDto) {
-            return {};
-        }
-
         try {
-            await this.userRepository.update(user.id, updateUserDataDto);
+            if (!updateUserDataDto) {
+                throw new BadRequestException('Invalid data');
+            }
 
-            return {
-                ...updateUserDataDto,
+            const { phone, countryCode, fullName } = updateUserDataDto;
+
+            if ((phone && !countryCode) || (!phone && countryCode)) {
+                throw new BadRequestException('Invalid data');
+            }
+
+            let updatePayload: QueryPartialEntity<User> = {
+                fullName,
             };
+
+            if (phone && countryCode) {
+                const normalizedPhone = normalizePhone(phone, countryCode);
+
+                updatePayload = {
+                    ...updatePayload,
+                    ...normalizedPhone,
+                    phoneVerified: false,
+                };
+            }
+
+            const result = await this.userRepository.update(
+                user.id,
+                updatePayload,
+            );
+
+            return result.affected ? result.affected > 0 : false;
         } catch (error) {
             return handleErrors(this.logger, error);
         }
@@ -178,7 +199,7 @@ export class AuthService {
 
             await this.userRepository.update(user.id, { phoneVerified: true });
 
-            return this.renewTokens(user);
+            return this.renewTokens({ ...user, phoneVerified: true });
         } catch (error) {
             return handleErrors(this.logger, error);
         }
