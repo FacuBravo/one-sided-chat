@@ -9,20 +9,29 @@ export const conversationsMapper = (
     conversations: Conversation[],
     contactsReceivers: ContactResponseDto[] = [],
     contactsSenders: ContactResponseDto[] = [],
-    lastMessages: (MessageResponseDto | null)[] = [],
+    lastMessages: MessageResponseDto[] = [],
 ): ConversationResponseDto[] => {
-    return conversations.map((conversation, index) => ({
-        id: conversation.id,
-        name: conversation.name,
-        description: conversation.description,
-        createdAt: conversation.createdAt,
-        lastMessage: lastMessages[index],
-        usersSenders: usersMapper(conversation.usersSenders, contactsSenders),
-        usersReceivers: usersMapper(
-            conversation.usersReceivers,
-            contactsReceivers,
-        ),
-    }));
+    return conversations.map((conversation) => {
+        const lastMessage = lastMessages.find(
+            (m) => m.id === conversation.lastMessageId,
+        );
+
+        return {
+            id: conversation.id,
+            name: conversation.name,
+            description: conversation.description,
+            createdAt: conversation.createdAt,
+            lastMessage: lastMessage || null,
+            usersSenders: usersMapper(
+                conversation.usersSenders,
+                contactsSenders,
+            ),
+            usersReceivers: usersMapper(
+                conversation.usersReceivers,
+                contactsReceivers,
+            ),
+        };
+    });
 };
 
 export const fullConversationMapper = (

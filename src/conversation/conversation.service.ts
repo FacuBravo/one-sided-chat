@@ -124,17 +124,12 @@ export class ConversationService {
                 },
             });
 
-            const lastMessages = await Promise.all(
-                conversations.map((conversation) => {
-                    if (conversation.lastMessageId) {
-                        return this.messageService.findOne(
-                            conversation.lastMessageId,
-                        );
-                    }
+            const lastMessagesIds = conversations
+                .map((conversation) => conversation.lastMessageId)
+                .filter((id) => id !== undefined);
 
-                    return null;
-                }),
-            );
+            const lastMessages =
+                await this.messageService.findByIds(lastMessagesIds);
 
             const receiversIds = conversations
                 .map((conversation) => conversation.usersReceivers)
