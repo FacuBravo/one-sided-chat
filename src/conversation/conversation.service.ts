@@ -88,8 +88,10 @@ export class ConversationService {
                 .flat()
                 .map((user) => user.id);
 
-            const contacts =
-                await this.contactsService.findByUsers(receiversIds);
+            const contacts = await this.contactsService.findByUsers(
+                user,
+                receiversIds,
+            );
 
             return conversationsMapper([savedConversation], contacts)[0];
         } catch (error) {
@@ -144,11 +146,15 @@ export class ConversationService {
                 .flat()
                 .map((user) => user.id);
 
-            const sendersContacts =
-                await this.contactsService.findByUsers(sendersIds);
+            const sendersContacts = await this.contactsService.findByUsers(
+                user,
+                sendersIds,
+            );
 
-            const receiversContacts =
-                await this.contactsService.findByUsers(receiversIds);
+            const receiversContacts = await this.contactsService.findByUsers(
+                user,
+                receiversIds,
+            );
 
             return conversationsMapper(
                 conversations,
@@ -196,11 +202,15 @@ export class ConversationService {
                 throw new NotFoundException('Conversation not found');
             }
 
-            const sendersContacts =
-                await this.contactsService.findByUsers(sendersIds);
+            const sendersContacts = await this.contactsService.findByUsers(
+                user,
+                sendersIds,
+            );
 
-            const receiversContacts =
-                await this.contactsService.findByUsers(receiversIds);
+            const receiversContacts = await this.contactsService.findByUsers(
+                user,
+                receiversIds,
+            );
 
             const messages = await this.messageService.findAllByConversationId(
                 id,

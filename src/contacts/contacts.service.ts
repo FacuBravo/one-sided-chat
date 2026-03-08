@@ -116,10 +116,11 @@ export class ContactsService {
     }
 
     async findByUsers(
+        user: User,
         referencedUsers: string[],
     ): Promise<ContactResponseDto[]> {
         const contacts = await this.contactRepository.find({
-            where: { referencedUser: { id: In(referencedUsers) } },
+            where: { user, referencedUser: { id: In(referencedUsers) } },
             relations: ['referencedUser'],
             order: { name: 'ASC', referencedUser: { fullName: 'ASC' } },
         });

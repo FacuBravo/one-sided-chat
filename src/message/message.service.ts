@@ -49,6 +49,16 @@ export class MessageService {
             if (conversationId) {
                 conversation =
                     await this.conversationService.findOne(conversationId);
+
+                if (
+                    conversation.usersSenders.findIndex(
+                        (userSender) => userSender.id === user.id,
+                    ) === -1
+                ) {
+                    throw new BadRequestException(
+                        'You are not a sender of this conversation',
+                    );
+                }
             } else {
                 conversation = await this.conversationService.create(user, {
                     phonesReceivers: phones!,
