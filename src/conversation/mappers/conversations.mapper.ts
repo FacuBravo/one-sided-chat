@@ -1,19 +1,32 @@
 import { MessageResponseDto } from 'src/message/dto/message.response';
-import { ConversationResponseDto } from '../dto/conversation.response';
+import {
+    ConversationDetailResponseDTO,
+    ConversationResponseDto,
+} from '../dto/conversation.response';
 import { Conversation } from '../entities/conversation.entity';
 import { usersMapper } from 'src/auth/mappers/user.mapper';
 import { ContactResponseDto } from 'src/contacts/dto/contact.response';
 import { PaginationResponse } from 'src/utils/dtos/pagination-response';
+
+export type UnreadMessages = {
+    conversationId: string;
+    count: number;
+};
 
 export const conversationsMapper = (
     conversations: Conversation[],
     contactsReceivers: ContactResponseDto[] = [],
     contactsSenders: ContactResponseDto[] = [],
     lastMessages: MessageResponseDto[] = [],
+    unreadMessages: UnreadMessages[] = [],
 ): ConversationResponseDto[] => {
     return conversations.map((conversation) => {
         const lastMessage = lastMessages.find(
             (m) => m.id === conversation.lastMessageId,
+        );
+
+        const unreadMessage = unreadMessages.find(
+            (m) => m.conversationId === conversation.id,
         );
 
         return {
@@ -30,6 +43,8 @@ export const conversationsMapper = (
                 conversation.usersReceivers,
                 contactsReceivers,
             ),
+            lastMessageSeq: conversation.lastMessageSeq,
+            totalUnreadMessages: unreadMessage?.count || 0,
         };
     });
 };
@@ -39,7 +54,8 @@ export const fullConversationMapper = (
     messages: PaginationResponse<MessageResponseDto>,
     contactsReceivers: ContactResponseDto[] = [],
     contactsSenders: ContactResponseDto[] = [],
-) => {
+    unreadCount: number = 0,
+): ConversationDetailResponseDTO => {
     return {
         id: conversation.id,
         name: conversation.name,
@@ -51,5 +67,6 @@ export const fullConversationMapper = (
             contactsReceivers,
         ),
         messages,
+        hasUnreadMessages: unreadCount > 0,
     };
 };

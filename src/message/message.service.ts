@@ -9,7 +9,7 @@ import { CreateMessageDto } from './dto/create-message.dto';
 import { UpdateMessageDto } from './dto/update-message.dto';
 import { User } from 'src/auth/entities/user.entity';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { In, Not, Raw, Repository } from 'typeorm';
 import { Message } from './entities/message.entity';
 import { handleErrors } from 'src/utils/functions';
 import { ConversationService } from 'src/conversation/conversation.service';
@@ -69,7 +69,7 @@ export class MessageService {
                 text,
                 userSender: user,
                 conversation: { id: conversation.id },
-                readBy: [],
+                seq: conversation.lastMessageSeq + 1,
             });
 
             const savedMessage = await this.messageRepository.save(message);
@@ -77,6 +77,7 @@ export class MessageService {
             await this.conversationService.updateLastMessage(
                 conversation.id,
                 savedMessage.id,
+                conversation.lastMessageSeq + 1,
             );
 
             return savedMessage;
@@ -85,18 +86,32 @@ export class MessageService {
         }
     }
 
-    findAll() {
-        return `This action returns all message`;
-    }
-
-    async findOne(id: string): Promise<MessageResponseDto> {
-        const message = await this.messageRepository.findOneBy({ id });
+    async findOneByIdAndConversation(
+        id: string,
+        conversationId: string,
+    ): Promise<MessageResponseDto> {
+        const message = await this.messageRepository.findOne({
+            where: {
+                id,
+                conversation: { id: conversationId },
+            },
+            relations: ['userSender'],
+        });
 
         if (!message) {
             throw new BadRequestException('Message not found');
         }
 
-        return message;
+        return messagesMapper([message])[0];
+    }
+
+    async findByIds(ids: string[]): Promise<MessageResponseDto[]> {
+        const messages = await this.messageRepository.find({
+            where: { id: In(ids) },
+            relations: ['userSender'],
+        });
+
+        return messagesMapper(messages);
     }
 
     async findAllByConversationId(
@@ -122,6 +137,16 @@ export class MessageService {
 
     update(id: string, updateMessageDto: UpdateMessageDto) {
         return `This action updates a #${id} message`;
+    }
+
+    countUnreadMessages(user: User, conversationId: string, seq: number) {
+        return this.messageRepository.count({
+            where: {
+                conversation: { id: conversationId },
+                userSender: { id: Not(user.id) },
+                seq: Raw((alias) => `${alias} > ${seq}`),
+            },
+        });
     }
 
     remove(id: string) {

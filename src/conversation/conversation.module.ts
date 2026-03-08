@@ -7,12 +7,13 @@ import { Invitation } from './entities/invitation.entity';
 import { AuthModule } from 'src/auth/auth.module';
 import { MessageModule } from 'src/message/message.module';
 import { ContactsModule } from 'src/contacts/contacts.module';
+import { ConversationRead } from './entities/conversation_read.entity';
 
 @Module({
     controllers: [ConversationController],
     providers: [ConversationService],
     imports: [
-        TypeOrmModule.forFeature([Conversation, Invitation]),
+        TypeOrmModule.forFeature([Conversation, Invitation, ConversationRead]),
         AuthModule,
         forwardRef(() => MessageModule),
         ContactsModule,

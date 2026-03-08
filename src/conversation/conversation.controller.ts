@@ -47,6 +47,15 @@ export class ConversationController {
         );
     }
 
+    @Patch(':id/mark-as-read/:messageId')
+    markAsRead(
+        @GetUserVerified() user: User,
+        @Param('id', ParseUUIDPipe) id: string,
+        @Param('messageId', ParseUUIDPipe) messageId: string,
+    ) {
+        return this.conversationService.markAsRead(user, id, messageId);
+    }
+
     @Patch(':id')
     update(
         @Param('id') id: string,

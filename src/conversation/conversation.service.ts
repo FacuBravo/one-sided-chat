@@ -9,7 +9,7 @@ import {
 import { CreateConversationDto } from './dto/create-conversation.dto';
 import { UpdateConversationDto } from './dto/update-conversation.dto';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { In, Repository } from 'typeorm';
 import { Conversation } from './entities/conversation.entity';
 import { handleErrors, normalizePhone } from 'src/utils/functions';
 import { Invitation } from './entities/invitation.entity';
@@ -20,9 +20,11 @@ import { MessageService } from 'src/message/message.service';
 import {
     conversationsMapper,
     fullConversationMapper,
+    UnreadMessages,
 } from './mappers/conversations.mapper';
 import { ContactsService } from 'src/contacts/contacts.service';
 import { PaginationDto } from 'src/utils/dtos/pagination.dto';
+import { ConversationRead } from './entities/conversation_read.entity';
 
 @Injectable()
 export class ConversationService {
@@ -31,6 +33,8 @@ export class ConversationService {
     constructor(
         @InjectRepository(Conversation)
         private readonly conversationRepository: Repository<Conversation>,
+        @InjectRepository(ConversationRead)
+        private readonly conversationReadRepository: Repository<ConversationRead>,
         @InjectRepository(Invitation)
         private readonly invitationRepository: Repository<Invitation>,
         private readonly authService: AuthService,
@@ -117,7 +121,6 @@ export class ConversationService {
                 ],
                 order: {
                     updatedAt: 'DESC',
-                    name: 'ASC',
                     usersReceivers: {
                         fullName: 'ASC',
                     },
@@ -151,11 +154,40 @@ export class ConversationService {
                 receiversIds,
             );
 
+            const conversationIds = conversations.map(
+                (conversation) => conversation.id,
+            );
+
+            const conversationReads = await this.getConversationReads(
+                user,
+                conversationIds,
+            );
+
+            const unreadMessages: UnreadMessages[] = await Promise.all(
+                conversations.map(async (c) => {
+                    const conversationRead = conversationReads.find(
+                        (cr) => cr.conversation.id === c.id,
+                    );
+
+                    const count = await this.messageService.countUnreadMessages(
+                        user,
+                        c.id,
+                        conversationRead?.lastReadSeq || 0,
+                    );
+
+                    return {
+                        conversationId: c.id,
+                        count,
+                    };
+                }),
+            );
+
             return conversationsMapper(
                 conversations,
                 receiversContacts,
                 sendersContacts,
                 lastMessages,
+                unreadMessages,
             );
         } catch (error) {
             return handleErrors(this.logger, error);
@@ -213,11 +245,26 @@ export class ConversationService {
                 paginationDto.limit,
             );
 
+            const conversationRead =
+                await this.conversationReadRepository.findOne({
+                    where: {
+                        conversation: { id },
+                        user: { id: user.id },
+                    },
+                });
+
+            const unreadCount = await this.messageService.countUnreadMessages(
+                user,
+                conversation.id,
+                conversationRead?.lastReadSeq || 0,
+            );
+
             return fullConversationMapper(
                 conversation,
                 messages,
                 receiversContacts,
                 sendersContacts,
+                unreadCount,
             );
         } catch (error) {
             return handleErrors(this.logger, error);
@@ -243,11 +290,16 @@ export class ConversationService {
         return `This action updates a #${id} conversation`;
     }
 
-    async updateLastMessage(id: string, lastMessageId: string) {
+    async updateLastMessage(
+        id: string,
+        lastMessageId: string,
+        lastMessageSeq: number,
+    ) {
         try {
             const res = await this.conversationRepository.update(id, {
                 lastMessageId,
                 updatedAt: new Date(),
+                lastMessageSeq,
             });
 
             return res.affected;
@@ -256,8 +308,54 @@ export class ConversationService {
         }
     }
 
+    async markAsRead(user: User, id: string, messageId: string) {
+        try {
+            const message =
+                await this.messageService.findOneByIdAndConversation(
+                    messageId,
+                    id,
+                );
+            const conversation = await this.findOne(id);
+
+            if (
+                conversation.usersReceivers.findIndex(
+                    (u) => u.id === user.id,
+                ) === -1 &&
+                conversation.usersSenders.findIndex((u) => u.id === user.id) ===
+                    -1
+            ) {
+                throw new NotFoundException('Conversation not found');
+            }
+
+            await this.conversationReadRepository.upsert(
+                {
+                    conversation: { id },
+                    user: { id: user.id },
+                    lastReadSeq: message.seq,
+                },
+                ['conversation', 'user'],
+            );
+
+            return true;
+        } catch (error) {
+            return handleErrors(this.logger, error);
+        }
+    }
+
     remove(id: string) {
         return `This action removes a #${id} conversation`;
+    }
+
+    private getConversationReads(user: User, conversationIds: string[]) {
+        return this.conversationReadRepository.find({
+            where: {
+                conversation: { id: In(conversationIds) },
+                user: {
+                    id: user.id,
+                },
+            },
+            relations: ['conversation', 'user'],
+        });
     }
 
     private getUsersByPhones(phones: BasicPhoneDto[], user: User) {

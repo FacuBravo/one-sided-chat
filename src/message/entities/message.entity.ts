@@ -4,23 +4,27 @@ import {
     Column,
     CreateDateColumn,
     Entity,
+    Index,
     ManyToOne,
     PrimaryGeneratedColumn,
+    Unique,
 } from 'typeorm';
 
 @Entity('messages')
+@Index(['conversation', 'seq'])
+@Unique(['conversation', 'seq'])
 export class Message {
     @PrimaryGeneratedColumn('uuid')
     id: string;
+
+    @Column({ type: 'bigint' })
+    seq: number;
 
     @Column({ type: 'text' })
     text: string;
 
     @CreateDateColumn({ type: 'timestamptz' })
     createdAt: Date;
-
-    @Column({ type: 'uuid', array: true })
-    readBy: string[];
 
     @ManyToOne(() => User)
     userSender: User;

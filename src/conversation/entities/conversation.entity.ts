@@ -5,6 +5,7 @@ import {
     Column,
     CreateDateColumn,
     Entity,
+    Index,
     JoinTable,
     ManyToMany,
     OneToMany,
@@ -12,6 +13,7 @@ import {
 } from 'typeorm';
 
 @Entity('conversations')
+@Index('idx_conversations_updated_at', ['updatedAt'])
 export class Conversation {
     @PrimaryGeneratedColumn('uuid')
     id: string;
@@ -36,6 +38,9 @@ export class Conversation {
 
     @Column({ type: 'timestamptz', nullable: true })
     updatedAt?: Date;
+
+    @Column({ type: 'bigint', default: 0 })
+    lastMessageSeq: number;
 
     @OneToMany(() => Message, (message) => message.conversation)
     messages: Message[];
