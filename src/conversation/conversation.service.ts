@@ -12,7 +12,6 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { In, Repository } from 'typeorm';
 import { Conversation } from './entities/conversation.entity';
 import { handleErrors, normalizePhone } from 'src/utils/functions';
-import { Invitation } from './entities/invitation.entity';
 import { User } from 'src/auth/entities/user.entity';
 import { AuthService } from 'src/auth/auth.service';
 import { BasicPhoneDto } from 'src/auth/dto';
@@ -25,6 +24,7 @@ import {
 import { ContactsService } from 'src/contacts/contacts.service';
 import { PaginationDto } from 'src/utils/dtos/pagination.dto';
 import { ConversationRead } from './entities/conversation_read.entity';
+import { InvitationService } from 'src/invitation/invitation.service';
 
 @Injectable()
 export class ConversationService {
@@ -35,12 +35,12 @@ export class ConversationService {
         private readonly conversationRepository: Repository<Conversation>,
         @InjectRepository(ConversationRead)
         private readonly conversationReadRepository: Repository<ConversationRead>,
-        @InjectRepository(Invitation)
-        private readonly invitationRepository: Repository<Invitation>,
         private readonly authService: AuthService,
         @Inject(forwardRef(() => MessageService))
         private readonly messageService: MessageService,
         private readonly contactsService: ContactsService,
+        @Inject(forwardRef(() => InvitationService))
+        private readonly invitationService: InvitationService,
     ) {}
 
     async create(user: User, createConversationDto: CreateConversationDto) {
@@ -77,15 +77,11 @@ export class ConversationService {
                 await this.conversationRepository.save(conversation);
 
             if (invitedUsers.length) {
-                const invitations = invitedUsers.map((userReceiver) =>
-                    this.invitationRepository.create({
-                        conversation: savedConversation,
-                        userSender: user,
-                        userReceiver,
-                    }),
+                await this.invitationService.create(
+                    user,
+                    savedConversation.id,
+                    { userReceiverIds: invitedUsers.map((user) => user.id) },
                 );
-
-                await this.invitationRepository.save(invitations);
             }
 
             const receiversIds = savedConversation.usersReceivers

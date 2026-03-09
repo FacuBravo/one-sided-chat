@@ -1,5 +1,5 @@
 import { User } from 'src/auth/entities/user.entity';
-import { Invitation } from 'src/conversation/entities/invitation.entity';
+import { Invitation } from 'src/invitation/entities/invitation.entity';
 import { Message } from 'src/message/entities/message.entity';
 import {
     Column,
