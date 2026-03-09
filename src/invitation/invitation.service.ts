@@ -9,12 +9,13 @@ import {
 import { CreateInvitationDto } from './dto/create-invitation.dto';
 import { UpdateInvitationDto } from './dto/update-invitation.dto';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
-import { Invitation } from './entities/invitation.entity';
+import { Not, Repository } from 'typeorm';
+import { Invitation, InvitationState } from './entities/invitation.entity';
 import { User } from 'src/auth/entities/user.entity';
 import { handleErrors } from 'src/utils/functions';
 import { ConversationService } from 'src/conversation/conversation.service';
 import { ContactsService } from 'src/contacts/contacts.service';
+import { invitationsMapper } from './mappers/invitations.mapper';
 
 @Injectable()
 export class InvitationService {
@@ -48,6 +49,12 @@ export class InvitationService {
                 );
             }
 
+            if (!conversation.name) {
+                throw new BadRequestException(
+                    'The conversation is not a group',
+                );
+            }
+
             const contacts = await this.contactsService.findByUsers(
                 user,
                 userReceiverIds,
@@ -65,14 +72,33 @@ export class InvitationService {
                 });
             });
 
-            return await this.invitationRepository.save(invitations);
+            await this.invitationRepository.save(invitations);
+
+            return true;
         } catch (error) {
             return handleErrors(this.logger, error);
         }
     }
 
-    findAll() {
-        return `This action returns all invitation`;
+    async findAllByState(user: User, state: InvitationState, exclude: boolean) {
+        try {
+            const invitations = await this.invitationRepository.find({
+                where: {
+                    userReceiver: { id: user.id },
+                    state: exclude ? Not(state) : state,
+                },
+                relations: [
+                    'conversation',
+                    'conversation.usersReceivers',
+                    'userSender',
+                    'userReceiver',
+                ],
+            });
+
+            return invitationsMapper(invitations);
+        } catch (error) {
+            return handleErrors(this.logger, error);
+        }
     }
 
     findOne(id: number) {

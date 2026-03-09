@@ -9,6 +9,12 @@ import {
 } from 'typeorm';
 import { Conversation } from 'src/conversation/entities/conversation.entity';
 
+export enum InvitationState {
+    PENDING = 'pending',
+    ACCEPTED = 'accepted',
+    REJECTED = 'rejected',
+}
+
 @Entity('invitations')
 @Unique(['conversation', 'userReceiver'])
 export class Invitation {
@@ -17,13 +23,16 @@ export class Invitation {
 
     @Column({
         type: 'enum',
-        enum: ['pending', 'accepted', 'rejected'],
+        enum: InvitationState,
         default: 'pending',
     })
-    state: 'pending' | 'accepted' | 'rejected';
+    state: InvitationState;
 
     @CreateDateColumn({ type: 'timestamptz' })
     createdAt: Date;
+
+    @Column({ type: 'timestamptz', nullable: true })
+    solvedAt?: Date;
 
     @ManyToOne(() => User)
     userSender: User;

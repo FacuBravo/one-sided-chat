@@ -7,12 +7,15 @@ import {
     Param,
     Delete,
     ParseUUIDPipe,
+    ParseEnumPipe,
+    ParseBoolPipe,
 } from '@nestjs/common';
 import { InvitationService } from './invitation.service';
 import { CreateInvitationDto } from './dto/create-invitation.dto';
 import { UpdateInvitationDto } from './dto/update-invitation.dto';
 import { Auth, GetUserVerified } from 'src/auth/decorators';
 import { User } from 'src/auth/entities/user.entity';
+import { InvitationState } from './entities/invitation.entity';
 
 @Controller('invitation')
 @Auth()
@@ -32,9 +35,14 @@ export class InvitationController {
         );
     }
 
-    @Get('/me')
-    findAll() {
-        return this.invitationService.findAll();
+    @Get('/me/:state/:exclude')
+    findAllByState(
+        @GetUserVerified() user: User,
+        @Param('state', new ParseEnumPipe(InvitationState))
+        state: InvitationState,
+        @Param('exclude', ParseBoolPipe) exclude: boolean,
+    ) {
+        return this.invitationService.findAllByState(user, state, exclude);
     }
 
     @Get(':id')

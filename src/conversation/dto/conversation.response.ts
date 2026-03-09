@@ -24,3 +24,10 @@ export interface ConversationDetailResponseDTO {
     messages: PaginationResponse<MessageResponseDto>;
     hasUnreadMessages: boolean;
 }
+
+export interface SimpleConversationResponseDto {
+    id: string;
+    name?: string;
+    description?: string;
+    usersReceivers: UserResponseDto[];
+}

@@ -2,6 +2,7 @@ import { MessageResponseDto } from 'src/message/dto/message.response';
 import {
     ConversationDetailResponseDTO,
     ConversationResponseDto,
+    SimpleConversationResponseDto,
 } from '../dto/conversation.response';
 import { Conversation } from '../entities/conversation.entity';
 import { usersMapper } from 'src/auth/mappers/user.mapper';
@@ -69,4 +70,17 @@ export const fullConversationMapper = (
         messages,
         hasUnreadMessages: unreadCount > 0,
     };
+};
+
+export const simpleConversationsMapper = (
+    conversations: Conversation[],
+): SimpleConversationResponseDto[] => {
+    return conversations.map((conversation) => {
+        return {
+            id: conversation.id,
+            name: conversation.name,
+            description: conversation.description,
+            usersReceivers: usersMapper(conversation.usersReceivers),
+        };
+    });
 };
