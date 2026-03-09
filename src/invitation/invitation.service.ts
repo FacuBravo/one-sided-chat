@@ -95,7 +95,14 @@ export class InvitationService {
                 ],
             });
 
-            return invitationsMapper(invitations);
+            const contactsIds = invitations.map((i) => i.userSender.id);
+
+            const contacts = await this.contactsService.findByUsers(
+                user,
+                contactsIds,
+            );
+
+            return invitationsMapper(invitations, contacts);
         } catch (error) {
             return handleErrors(this.logger, error);
         }
