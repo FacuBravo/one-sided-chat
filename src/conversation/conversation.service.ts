@@ -286,6 +286,18 @@ export class ConversationService {
         return `This action updates a #${id} conversation`;
     }
 
+    async addInvitedUser(conversationId: string, invitedUser: User) {
+        try {
+            const conversation = await this.findOneRaw(conversationId);
+
+            conversation.usersSenders.push(invitedUser);
+
+            return this.conversationRepository.save(conversation);
+        } catch (error) {
+            return handleErrors(this.logger, error);
+        }
+    }
+
     async updateLastMessage(
         id: string,
         lastMessageId: string,
@@ -340,6 +352,21 @@ export class ConversationService {
 
     remove(id: string) {
         return `This action removes a #${id} conversation`;
+    }
+
+    private async findOneRaw(id: string) {
+        const conversation = await this.conversationRepository.findOne({
+            where: {
+                id,
+            },
+            relations: ['usersReceivers', 'usersSenders'],
+        });
+
+        if (!conversation) {
+            throw new NotFoundException('Conversation not found');
+        }
+
+        return conversation;
     }
 
     private getConversationReads(user: User, conversationIds: string[]) {

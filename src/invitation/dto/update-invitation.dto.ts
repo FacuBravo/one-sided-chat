@@ -1,4 +1,8 @@
-import { PartialType } from '@nestjs/swagger';
-import { CreateInvitationDto } from './create-invitation.dto';
+import { IsEnum, IsNotEmpty } from 'class-validator';
+import { InvitationState } from '../entities/invitation.entity';
 
-export class UpdateInvitationDto extends PartialType(CreateInvitationDto) {}
+export class UpdateInvitationDto {
+    @IsNotEmpty()
+    @IsEnum(InvitationState)
+    state: InvitationState;
+}

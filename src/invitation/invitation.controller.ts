@@ -46,17 +46,13 @@ export class InvitationController {
         return this.invitationService.findAllByState(user, state, exclude);
     }
 
-    @Get(':id')
-    findOne(@Param('id') id: string) {
-        return this.invitationService.findOne(+id);
-    }
-
     @Patch(':id')
-    update(
-        @Param('id') id: string,
+    answer(
+        @Param('id', ParseUUIDPipe) id: string,
+        @GetUserVerified() user: User,
         @Body() updateInvitationDto: UpdateInvitationDto,
     ) {
-        return this.invitationService.update(+id, updateInvitationDto);
+        return this.invitationService.answer(user, id, updateInvitationDto);
     }
 
     @Delete(':id')

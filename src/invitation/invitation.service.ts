@@ -108,12 +108,58 @@ export class InvitationService {
         }
     }
 
-    findOne(id: number) {
-        return `This action returns a #${id} invitation`;
+    private async findOneByIdAndUserReceiver(user: User, id: string) {
+        const invitation = await this.invitationRepository.findOne({
+            where: {
+                id,
+                userReceiver: { id: user.id },
+            },
+            relations: ['conversation', 'userSender', 'userReceiver'],
+        });
+
+        if (!invitation) {
+            throw new NotFoundException('Invitation not found');
+        }
+
+        return invitation;
     }
 
-    update(id: number, updateInvitationDto: UpdateInvitationDto) {
-        return `This action updates a #${id} invitation`;
+    async answer(
+        user: User,
+        id: string,
+        updateInvitationDto: UpdateInvitationDto,
+    ) {
+        try {
+            const { state } = updateInvitationDto;
+
+            if (state === 'pending') {
+                throw new BadRequestException('Invalid state');
+            }
+
+            const invitation = await this.findOneByIdAndUserReceiver(user, id);
+
+            if (invitation.state !== 'pending') {
+                throw new BadRequestException('Invitation already answered');
+            }
+
+            const result = await this.invitationRepository.update(id, {
+                state: updateInvitationDto.state,
+                solvedAt: new Date(),
+            });
+
+            if (result.affected === 1) {
+                await this.conversationService.addInvitedUser(
+                    invitation.conversation.id,
+                    invitation.userReceiver,
+                );
+
+                return true;
+            }
+
+            return false;
+        } catch (error) {
+            return handleErrors(this.logger, error);
+        }
     }
 
     remove(id: number) {
