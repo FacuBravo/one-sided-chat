@@ -350,8 +350,49 @@ export class ConversationService {
         }
     }
 
-    remove(id: string) {
-        return `This action removes a #${id} conversation`;
+    async remove(id: string, user: User) {
+        try {
+            const conversation = await this.findOneRaw(id);
+
+            const receiversIds = conversation.usersReceivers
+                .flat()
+                .map((user) => user.id);
+
+            const sendersIds = conversation.usersSenders
+                .flat()
+                .map((user) => user.id);
+
+            if (
+                !receiversIds.includes(user.id) &&
+                !sendersIds.includes(user.id)
+            ) {
+                throw new NotFoundException('Conversation not found');
+            }
+
+            if (sendersIds.includes(user.id)) {
+                conversation.usersSenders = conversation.usersSenders.filter(
+                    (u) => u.id !== user.id,
+                );
+            }
+
+            if (receiversIds.includes(user.id)) {
+                conversation.usersReceivers =
+                    conversation.usersReceivers.filter((u) => u.id !== user.id);
+            }
+
+            if (
+                conversation.usersReceivers.length === 0 &&
+                conversation.usersSenders.length === 0
+            ) {
+                await this.conversationRepository.remove(conversation);
+            } else {
+                await this.conversationRepository.save(conversation);
+            }
+
+            return true;
+        } catch (error) {
+            return handleErrors(this.logger, error);
+        }
     }
 
     private async findOneRaw(id: string) {

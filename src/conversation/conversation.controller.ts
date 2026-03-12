@@ -65,7 +65,7 @@ export class ConversationController {
     }
 
     @Delete(':id')
-    remove(@Param('id') id: string) {
-        return this.conversationService.remove(id);
+    remove(@Param('id') id: string, @GetUserVerified() user: User) {
+        return this.conversationService.remove(id, user);
     }
 }
