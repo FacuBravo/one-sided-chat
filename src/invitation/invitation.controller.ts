@@ -46,6 +46,11 @@ export class InvitationController {
         return this.invitationService.findAllByState(user, state, exclude);
     }
 
+    @Get('/me/count/pending')
+    countPending(@GetUserVerified() user: User) {
+        return this.invitationService.countPending(user);
+    }
+
     @Patch(':id')
     answer(
         @Param('id', ParseUUIDPipe) id: string,

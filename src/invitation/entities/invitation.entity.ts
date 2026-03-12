@@ -5,7 +5,6 @@ import {
     Entity,
     ManyToOne,
     PrimaryGeneratedColumn,
-    Unique,
 } from 'typeorm';
 import { Conversation } from 'src/conversation/entities/conversation.entity';
 
@@ -16,7 +15,6 @@ export enum InvitationState {
 }
 
 @Entity('invitations')
-@Unique(['conversation', 'userReceiver'])
 export class Invitation {
     @PrimaryGeneratedColumn('uuid')
     id: string;

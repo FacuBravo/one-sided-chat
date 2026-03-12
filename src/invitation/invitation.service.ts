@@ -9,7 +9,7 @@ import {
 import { CreateInvitationDto } from './dto/create-invitation.dto';
 import { UpdateInvitationDto } from './dto/update-invitation.dto';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Not, Repository } from 'typeorm';
+import { In, Not, Repository } from 'typeorm';
 import { Invitation, InvitationState } from './entities/invitation.entity';
 import { User } from 'src/auth/entities/user.entity';
 import { handleErrors } from 'src/utils/functions';
@@ -62,6 +62,21 @@ export class InvitationService {
 
             if (contacts.length !== userReceiverIds.length) {
                 throw new NotFoundException('User not found in contacts');
+            }
+
+            const repeatedInvitations = await this.invitationRepository.find({
+                where: {
+                    conversation: { id: conversationId },
+                    userReceiver: { id: In(userReceiverIds) },
+                    state: In([
+                        InvitationState.PENDING,
+                        InvitationState.ACCEPTED,
+                    ]),
+                },
+            });
+
+            if (repeatedInvitations.length > 0) {
+                throw new BadRequestException('Invitation already sent');
             }
 
             const invitations = userReceiverIds.map((id) => {
@@ -147,7 +162,7 @@ export class InvitationService {
                 solvedAt: new Date(),
             });
 
-            if (result.affected === 1) {
+            if (result.affected === 1 && state === 'accepted') {
                 await this.conversationService.addInvitedUser(
                     invitation.conversation.id,
                     invitation.userReceiver,
@@ -164,5 +179,14 @@ export class InvitationService {
 
     remove(id: number) {
         return `This action removes a #${id} invitation`;
+    }
+
+    countPending(user: User) {
+        return this.invitationRepository.count({
+            where: {
+                userReceiver: { id: user.id },
+                state: InvitationState.PENDING,
+            },
+        });
     }
 }
