@@ -55,6 +55,16 @@ export class InvitationService {
                 );
             }
 
+            if (
+                conversation.usersSenders.findIndex((u) =>
+                    userReceiverIds.includes(u.id),
+                ) >= 0
+            ) {
+                throw new BadRequestException(
+                    'Invited user already in conversation',
+                );
+            }
+
             const contacts = await this.contactsService.findByUsers(
                 user,
                 userReceiverIds,
@@ -112,6 +122,7 @@ export class InvitationService {
                     'userSender',
                     'userReceiver',
                 ],
+                order: { createdAt: 'DESC' },
             });
 
             const contactsIds = invitations.map((i) => i.userSender.id);
@@ -153,6 +164,7 @@ export class InvitationService {
                     'userSender',
                     'userReceiver',
                 ],
+                order: { createdAt: 'DESC' },
             });
 
             const contactsIds = invitations.map((i) => i.userSender.id);
@@ -173,6 +185,22 @@ export class InvitationService {
             where: {
                 id,
                 userReceiver: { id: user.id },
+            },
+            relations: ['conversation', 'userSender', 'userReceiver'],
+        });
+
+        if (!invitation) {
+            throw new NotFoundException('Invitation not found');
+        }
+
+        return invitation;
+    }
+
+    private async findOneByIdAndUserSender(user: User, id: string) {
+        const invitation = await this.invitationRepository.findOne({
+            where: {
+                id,
+                userSender: { id: user.id },
             },
             relations: ['conversation', 'userSender', 'userReceiver'],
         });
@@ -222,8 +250,20 @@ export class InvitationService {
         }
     }
 
-    remove(id: number) {
-        return `This action removes a #${id} invitation`;
+    async remove(user: User, id: string) {
+        try {
+            const invitation = await this.findOneByIdAndUserSender(user, id);
+
+            if (invitation.state !== InvitationState.PENDING) {
+                throw new BadRequestException('Invitation already answered');
+            }
+
+            const res = await this.invitationRepository.delete(id);
+
+            return res.affected === 1;
+        } catch (error) {
+            return handleErrors(this.logger, error);
+        }
     }
 
     countPending(user: User) {

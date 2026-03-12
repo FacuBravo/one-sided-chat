@@ -76,7 +76,10 @@ export class InvitationController {
     }
 
     @Delete(':id')
-    remove(@Param('id') id: string) {
-        return this.invitationService.remove(+id);
+    remove(
+        @Param('id', ParseUUIDPipe) id: string,
+        @GetUserVerified() user: User,
+    ) {
+        return this.invitationService.remove(user, id);
     }
 }
