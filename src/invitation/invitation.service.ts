@@ -95,12 +95,57 @@ export class InvitationService {
         }
     }
 
-    async findAllByState(user: User, state: InvitationState, exclude: boolean) {
+    async findByUserAndByState(
+        user: User,
+        state: InvitationState,
+        exclude: boolean,
+    ) {
         try {
             const invitations = await this.invitationRepository.find({
                 where: {
                     userReceiver: { id: user.id },
                     state: exclude ? Not(state) : state,
+                },
+                relations: [
+                    'conversation',
+                    'conversation.usersReceivers',
+                    'userSender',
+                    'userReceiver',
+                ],
+            });
+
+            const contactsIds = invitations.map((i) => i.userSender.id);
+
+            const contacts = await this.contactsService.findByUsers(
+                user,
+                contactsIds,
+            );
+
+            return invitationsMapper(invitations, contacts);
+        } catch (error) {
+            return handleErrors(this.logger, error);
+        }
+    }
+
+    async findPendingByConversation(user: User, conversationId: string) {
+        try {
+            const conversation =
+                await this.conversationService.findOne(conversationId);
+
+            if (
+                conversation.usersSenders.findIndex(
+                    (sender) => sender.id === user.id,
+                ) === -1
+            ) {
+                throw new BadRequestException(
+                    'You are not a sender of this conversation',
+                );
+            }
+
+            const invitations = await this.invitationRepository.find({
+                where: {
+                    conversation: { id: conversationId },
+                    state: InvitationState.PENDING,
                 },
                 relations: [
                     'conversation',

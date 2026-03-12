@@ -37,13 +37,28 @@ export class InvitationController {
     }
 
     @Get('/me/:state')
-    findAllByState(
+    findByUserAndByState(
         @GetUserVerified() user: User,
         @Param('state', new ParseEnumPipe(InvitationState))
         state: InvitationState,
         @Query('exclude', ParseBoolPipe) exclude: boolean,
     ) {
-        return this.invitationService.findAllByState(user, state, exclude);
+        return this.invitationService.findByUserAndByState(
+            user,
+            state,
+            exclude,
+        );
+    }
+
+    @Get('/conversation/:conversationId/')
+    findPendingByConversation(
+        @GetUserVerified() user: User,
+        @Param('conversationId', ParseUUIDPipe) conversationId: string,
+    ) {
+        return this.invitationService.findPendingByConversation(
+            user,
+            conversationId,
+        );
     }
 
     @Get('/me/count/pending')
