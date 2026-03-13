@@ -60,8 +60,9 @@ export class ConversationController {
     update(
         @Param('id') id: string,
         @Body() updateConversationDto: UpdateConversationDto,
+        @GetUserVerified() user: User,
     ) {
-        return this.conversationService.update(id, updateConversationDto);
+        return this.conversationService.update(id, updateConversationDto, user);
     }
 
     @Delete(':id')

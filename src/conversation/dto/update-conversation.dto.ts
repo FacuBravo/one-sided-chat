@@ -1,4 +1,13 @@
-import { PartialType } from '@nestjs/swagger';
-import { CreateConversationDto } from './create-conversation.dto';
+import { IsString, IsOptional, MaxLength, IsNotEmpty } from 'class-validator';
 
-export class UpdateConversationDto extends PartialType(CreateConversationDto) {}
+export class UpdateConversationDto {
+    @IsString()
+    @IsNotEmpty()
+    @MaxLength(50)
+    name: string;
+
+    @IsString()
+    @IsOptional()
+    @MaxLength(100)
+    description?: string;
+}

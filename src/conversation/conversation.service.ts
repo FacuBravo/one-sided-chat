@@ -1,5 +1,6 @@
 import {
     BadRequestException,
+    ForbiddenException,
     forwardRef,
     Inject,
     Injectable,
@@ -317,8 +318,41 @@ export class ConversationService {
         return conversationsMapper([conversation])[0];
     }
 
-    update(id: string, updateConversationDto: UpdateConversationDto) {
-        return `This action updates a #${id} conversation`;
+    async update(
+        id: string,
+        updateConversationDto: UpdateConversationDto,
+        user: User,
+    ) {
+        try {
+            const conversation = await this.findOneRaw(id);
+
+            const participant = conversation.participants.find(
+                (p) => p.user.id === user.id,
+            );
+
+            if (!participant) {
+                throw new NotFoundException('Conversation not found');
+            }
+
+            if (conversation.type !== 'group') {
+                throw new BadRequestException('Conversation is not a group');
+            }
+
+            if (participant.role !== ParticipantRole.ADMIN) {
+                throw new ForbiddenException(
+                    'You are not admin of this conversation',
+                );
+            }
+
+            const res = await this.conversationRepository.update(
+                id,
+                updateConversationDto,
+            );
+
+            return res.affected === 1;
+        } catch (error) {
+            return handleErrors(this.logger, error);
+        }
     }
 
     async addInvitedUser(conversationId: string, invitedUser: User) {
