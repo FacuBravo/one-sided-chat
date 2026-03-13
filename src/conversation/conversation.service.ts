@@ -10,6 +10,7 @@ import {
 import { CreateConversationDto } from './dto/create-conversation.dto';
 import {
     AddReceiversDto,
+    RemoveParticipantsDto,
     UpdateConversationDto,
 } from './dto/update-conversation.dto';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -522,6 +523,74 @@ export class ConversationService {
                     user,
                     type: ParticipantType.RECEIVER,
                 })),
+            );
+
+            return true;
+        } catch (error) {
+            return handleErrors(this.logger, error);
+        }
+    }
+
+    async removeParticipants(
+        id: string,
+        removeParticipantsDto: RemoveParticipantsDto,
+        user: User,
+    ) {
+        try {
+            const { userIds } = removeParticipantsDto;
+
+            if (userIds.includes(user.id)) {
+                throw new BadRequestException('You cannot remove yourself');
+            }
+
+            const conversation = await this.findOneRaw(id);
+
+            const participant = conversation.participants.find(
+                (p) => p.user.id === user.id,
+            );
+
+            if (!participant) {
+                throw new NotFoundException('Conversation not found');
+            }
+
+            if (participant.role !== ParticipantRole.ADMIN) {
+                throw new ForbiddenException(
+                    'You are not admin of this conversation',
+                );
+            }
+
+            const participantsToRemove = conversation.participants.filter(
+                (p) => userIds.includes(p.user.id) && !p.isDeleted,
+            );
+
+            if (participantsToRemove.length === 0) {
+                throw new BadRequestException('No participants to remove');
+            }
+
+            const receiversCount = conversation.participants.filter(
+                (p) => p.type === ParticipantType.RECEIVER && !p.isDeleted,
+            ).length;
+
+            const receiversCountToRemove = participantsToRemove.filter(
+                (p) => p.type === ParticipantType.RECEIVER,
+            ).length;
+
+            if (receiversCount - receiversCountToRemove < 2) {
+                throw new BadRequestException(
+                    'Group must have at least 2 receivers',
+                );
+            }
+
+            await this.conversationParticipantRepository.update(
+                {
+                    conversation: { id },
+                    user: {
+                        id: In(userIds),
+                    },
+                },
+                {
+                    isDeleted: true,
+                },
             );
 
             return true;

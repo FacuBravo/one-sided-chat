@@ -4,6 +4,7 @@ import {
     InternalServerErrorException,
     Logger,
     NotFoundException,
+    ForbiddenException,
 } from '@nestjs/common';
 
 export const handleErrors = (logger: Logger, error: any) => {
@@ -17,6 +18,8 @@ export const handleErrors = (logger: Logger, error: any) => {
         throw new BadRequestException(error.response.message);
     } else if (error.response.statusCode == 404) {
         throw new NotFoundException(error.response.message);
+    } else if (error.response.statusCode == 403) {
+        throw new ForbiddenException(error.response.message);
     }
 
     throw new InternalServerErrorException(error.detail);

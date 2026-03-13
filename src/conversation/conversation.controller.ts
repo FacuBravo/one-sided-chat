@@ -13,6 +13,7 @@ import { ConversationService } from './conversation.service';
 import { CreateConversationDto } from './dto/create-conversation.dto';
 import {
     AddReceiversDto,
+    RemoveParticipantsDto,
     UpdateConversationDto,
 } from './dto/update-conversation.dto';
 import { Auth, GetUserVerified } from 'src/auth/decorators';
@@ -66,6 +67,19 @@ export class ConversationController {
         @GetUserVerified() user: User,
     ) {
         return this.conversationService.addReceivers(id, addReceiversDto, user);
+    }
+
+    @Patch(':id/participants/remove')
+    removeParticipants(
+        @Param('id') id: string,
+        @Body() removeParticipantsDto: RemoveParticipantsDto,
+        @GetUserVerified() user: User,
+    ) {
+        return this.conversationService.removeParticipants(
+            id,
+            removeParticipantsDto,
+            user,
+        );
     }
 
     @Patch(':id')

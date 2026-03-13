@@ -7,6 +7,8 @@ import {
     IsArray,
     ValidateNested,
     ArrayNotEmpty,
+    IsUUID,
+    ArrayUnique,
 } from 'class-validator';
 import { BasicPhoneDto } from 'src/auth/dto';
 
@@ -28,4 +30,12 @@ export class AddReceiversDto {
     @ValidateNested({ each: true })
     @Type(() => BasicPhoneDto)
     phones: BasicPhoneDto[];
+}
+
+export class RemoveParticipantsDto {
+    @IsArray()
+    @ArrayNotEmpty()
+    @IsUUID(undefined, { each: true })
+    @ArrayUnique()
+    userIds: string[];
 }
