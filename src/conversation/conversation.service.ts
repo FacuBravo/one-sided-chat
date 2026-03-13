@@ -326,7 +326,7 @@ export class ConversationService {
             return await this.conversationParticipantRepository.save({
                 conversation,
                 user: invitedUser,
-                type: ParticipantType.RECEIVER,
+                type: ParticipantType.SENDER,
             });
         } catch (error) {
             return handleErrors(this.logger, error);

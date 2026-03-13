@@ -23,6 +23,8 @@ export const conversationsMapper = (
     unreadMessages: UnreadMessages[] = [],
 ): ConversationResponseDto[] => {
     return conversations.map((conversation) => {
+        console.log({ conversation });
+
         const lastMessage = lastMessages.find(
             (m) => m.id === conversation.lastMessageId,
         );
