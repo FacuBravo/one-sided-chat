@@ -11,7 +11,10 @@ import {
 } from '@nestjs/common';
 import { ConversationService } from './conversation.service';
 import { CreateConversationDto } from './dto/create-conversation.dto';
-import { UpdateConversationDto } from './dto/update-conversation.dto';
+import {
+    AddReceiversDto,
+    UpdateConversationDto,
+} from './dto/update-conversation.dto';
 import { Auth, GetUserVerified } from 'src/auth/decorators';
 import { User } from 'src/auth/entities/user.entity';
 import { PaginationDto } from 'src/utils/dtos/pagination.dto';
@@ -54,6 +57,15 @@ export class ConversationController {
         @Param('messageId', ParseUUIDPipe) messageId: string,
     ) {
         return this.conversationService.markAsRead(user, id, messageId);
+    }
+
+    @Patch(':id/receivers')
+    addReceivers(
+        @Param('id') id: string,
+        @Body() addReceiversDto: AddReceiversDto,
+        @GetUserVerified() user: User,
+    ) {
+        return this.conversationService.addReceivers(id, addReceiversDto, user);
     }
 
     @Patch(':id')

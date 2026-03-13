@@ -20,7 +20,7 @@ export enum ParticipantRole {
 }
 
 @Entity('conversation_participants')
-@Unique(['conversation', 'user', 'type'])
+@Unique(['conversation', 'user', 'type', 'isDeleted'])
 export class ConversationParticipant {
     @PrimaryGeneratedColumn('uuid')
     id: string;

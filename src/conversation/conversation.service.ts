@@ -8,7 +8,10 @@ import {
     NotFoundException,
 } from '@nestjs/common';
 import { CreateConversationDto } from './dto/create-conversation.dto';
-import { UpdateConversationDto } from './dto/update-conversation.dto';
+import {
+    AddReceiversDto,
+    UpdateConversationDto,
+} from './dto/update-conversation.dto';
 import { InjectRepository } from '@nestjs/typeorm';
 import { In, Repository } from 'typeorm';
 import { Conversation } from './entities/conversation.entity';
@@ -461,6 +464,65 @@ export class ConversationService {
             ) {
                 await this.conversationRepository.remove(conversation);
             }
+
+            return true;
+        } catch (error) {
+            return handleErrors(this.logger, error);
+        }
+    }
+
+    async addReceivers(
+        id: string,
+        addReceiversDto: AddReceiversDto,
+        user: User,
+    ) {
+        try {
+            const conversation = await this.findOneRaw(id);
+
+            const participant = conversation.participants.find(
+                (p) => p.user.id === user.id,
+            );
+
+            if (!participant) {
+                throw new NotFoundException('Conversation not found');
+            }
+
+            if (participant.role !== ParticipantRole.ADMIN) {
+                throw new ForbiddenException(
+                    'You are not admin of this conversation',
+                );
+            }
+
+            const users = await this.getUsersByPhones(
+                addReceiversDto.phones,
+                user,
+            );
+
+            if (users.length !== addReceiversDto.phones.length) {
+                throw new NotFoundException('Users not found');
+            }
+
+            const userAlreadyInConversation = conversation.participants.find(
+                (p) =>
+                    users.find(
+                        (u) =>
+                            u.id === p.user.id &&
+                            !p.isDeleted &&
+                            p.type === ParticipantType.RECEIVER,
+                    ),
+            );
+
+            if (userAlreadyInConversation) {
+                throw new BadRequestException('User already in conversation');
+            }
+
+            await this.conversationParticipantRepository.save(
+                users.map((user) => ({
+                    conversation,
+                    user,
+                    type: ParticipantType.RECEIVER,
+                })),
+            );
 
             return true;
         } catch (error) {
