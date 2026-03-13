@@ -27,6 +27,7 @@ import { ConversationRead } from './entities/conversation_read.entity';
 import { InvitationService } from 'src/invitation/invitation.service';
 import {
     ConversationParticipant,
+    ParticipantRole,
     ParticipantType,
 } from './entities/conversation_participants.entity';
 
@@ -80,21 +81,21 @@ export class ConversationService {
                 user,
             );
 
-            const participants =
-                await this.conversationParticipantRepository.save(
-                    [
-                        usersReceivers.map((user) => ({
-                            conversation: savedConversation,
-                            user,
-                            type: ParticipantType.RECEIVER,
-                        })),
-                        {
-                            conversation: savedConversation,
-                            user,
-                            type: ParticipantType.SENDER,
-                        },
-                    ].flat(),
-                );
+            await this.conversationParticipantRepository.save(
+                [
+                    usersReceivers.map((user) => ({
+                        conversation: savedConversation,
+                        user,
+                        type: ParticipantType.RECEIVER,
+                    })),
+                    {
+                        conversation: savedConversation,
+                        user,
+                        type: ParticipantType.SENDER,
+                        role: ParticipantRole.ADMIN,
+                    },
+                ].flat(),
+            );
 
             if (invitedUsers.length) {
                 await this.invitationService.create(

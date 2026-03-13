@@ -5,7 +5,10 @@ import {
     SimpleConversationResponseDto,
 } from '../dto/conversation.response';
 import { Conversation } from '../entities/conversation.entity';
-import { usersMapper } from 'src/auth/mappers/user.mapper';
+import {
+    conversationUsersMapper,
+    usersMapper,
+} from 'src/auth/mappers/user.mapper';
 import { ContactResponseDto } from 'src/contacts/dto/contact.response';
 import { PaginationResponse } from 'src/utils/dtos/pagination-response';
 import { ConversationParticipant } from '../entities/conversation_participants.entity';
@@ -45,8 +48,16 @@ export const conversationsMapper = (
             description: conversation.description,
             createdAt: conversation.createdAt,
             lastMessage: lastMessage || null,
-            usersSenders: usersMapper(usersSenders, contactsSenders),
-            usersReceivers: usersMapper(usersReceivers, contactsReceivers),
+            usersSenders: conversationUsersMapper(
+                usersSenders,
+                conversation.participants,
+                contactsSenders,
+            ),
+            usersReceivers: conversationUsersMapper(
+                usersReceivers,
+                conversation.participants,
+                contactsReceivers,
+            ),
             lastMessageSeq: conversation.lastMessageSeq,
             totalUnreadMessages: unreadMessage?.count || 0,
         };
@@ -73,8 +84,16 @@ export const fullConversationMapper = (
         name: conversation.name,
         description: conversation.description,
         createdAt: conversation.createdAt,
-        usersSenders: usersMapper(usersSenders, contactsSenders),
-        usersReceivers: usersMapper(usersReceivers, contactsReceivers),
+        usersSenders: conversationUsersMapper(
+            usersSenders,
+            conversation.participants,
+            contactsSenders,
+        ),
+        usersReceivers: conversationUsersMapper(
+            usersReceivers,
+            conversation.participants,
+            contactsReceivers,
+        ),
         messages,
         hasUnreadMessages: unreadCount > 0,
     };

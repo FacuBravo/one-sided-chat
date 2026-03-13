@@ -1,4 +1,4 @@
-import { UserResponseDto } from 'src/auth/dto';
+import { ConversationUserDto, UserResponseDto } from 'src/auth/dto';
 import { MessageResponseDto } from 'src/message/dto/message.response';
 import { PaginationResponse } from 'src/utils/dtos/pagination-response';
 
@@ -8,8 +8,8 @@ export interface ConversationResponseDto {
     description?: string;
     createdAt: Date;
     lastMessage: MessageResponseDto | null;
-    usersSenders: UserResponseDto[];
-    usersReceivers: UserResponseDto[];
+    usersSenders: ConversationUserDto[];
+    usersReceivers: ConversationUserDto[];
     lastMessageSeq: number;
     totalUnreadMessages: number;
 }
@@ -19,8 +19,8 @@ export interface ConversationDetailResponseDTO {
     name?: string;
     description?: string;
     createdAt: Date;
-    usersSenders: UserResponseDto[];
-    usersReceivers: UserResponseDto[];
+    usersSenders: ConversationUserDto[];
+    usersReceivers: ConversationUserDto[];
     messages: PaginationResponse<MessageResponseDto>;
     hasUnreadMessages: boolean;
 }

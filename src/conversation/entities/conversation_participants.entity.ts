@@ -14,6 +14,11 @@ export enum ParticipantType {
     RECEIVER = 'receiver',
 }
 
+export enum ParticipantRole {
+    ADMIN = 'admin',
+    USER = 'user',
+}
+
 @Entity('conversation_participants')
 @Unique(['conversation', 'user', 'type'])
 export class ConversationParticipant {
@@ -39,6 +44,13 @@ export class ConversationParticipant {
         onDelete: 'CASCADE',
     })
     user: User;
+
+    @Column({
+        type: 'enum',
+        enum: ParticipantRole,
+        default: ParticipantRole.USER,
+    })
+    role: ParticipantRole;
 
     @Column({
         type: 'enum',

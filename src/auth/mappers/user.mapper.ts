@@ -1,6 +1,10 @@
 import { ContactResponseDto } from 'src/contacts/dto/contact.response';
-import { UserResponseDto } from '../dto';
+import { ConversationUserDto, UserResponseDto } from '../dto';
 import { User } from '../entities/user.entity';
+import {
+    ConversationParticipant,
+    ParticipantRole,
+} from 'src/conversation/entities/conversation_participants.entity';
 
 export const usersMapper = (
     users: User[],
@@ -13,6 +17,25 @@ export const usersMapper = (
             id: user.id,
             fullName: contact ? contact.name || user.fullName : user.fullName,
             username: user.username,
+        };
+    });
+};
+
+export const conversationUsersMapper = (
+    users: User[],
+    participants: ConversationParticipant[],
+    contacts?: ContactResponseDto[],
+): ConversationUserDto[] => {
+    return users.map((user) => {
+        const contact = contacts?.find((c) => c.referencedUser.id === user.id);
+        const participant = participants.find((p) => p.user.id === user.id);
+
+        return {
+            id: user.id,
+            fullName: contact ? contact.name || user.fullName : user.fullName,
+            username: user.username,
+            role: participant?.role || ParticipantRole.USER,
+            isDeleted: participant?.isDeleted || false,
         };
     });
 };
