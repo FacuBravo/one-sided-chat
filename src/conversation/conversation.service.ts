@@ -132,6 +132,7 @@ export class ConversationService {
                         .from(ConversationParticipant, 'cp')
                         .where('cp.conversationId = conversation.id')
                         .andWhere('cp.userId = :userId')
+                        .andWhere('cp.isDeleted = false')
                         .getQuery();
 
                     return `EXISTS ${sub}`;
@@ -387,48 +388,44 @@ export class ConversationService {
 
     async remove(id: string, user: User) {
         try {
-            // const conversation = await this.findOneRaw(id);
+            const conversation = await this.findOneRaw(id);
 
-            // const receiversIds = conversation.participants
-            //     .filter(
-            //         (participant) =>
-            //             participant.type === ParticipantType.RECEIVER,
-            //     )
-            //     .map((participant) => participant.user.id);
+            const participantsIds = conversation.participants.map(
+                (participant) => participant.user.id,
+            );
 
-            // const sendersIds = conversation.participants
-            //     .filter(
-            //         (participant) =>
-            //             participant.type === ParticipantType.SENDER,
-            //     )
-            //     .map((participant) => participant.user.id);
+            if (!participantsIds.includes(user.id)) {
+                throw new NotFoundException('Conversation not found');
+            }
 
-            // if (
-            //     !receiversIds.includes(user.id) &&
-            //     !sendersIds.includes(user.id)
-            // ) {
-            //     throw new NotFoundException('Conversation not found');
-            // }
+            await this.conversationParticipantRepository.update(
+                {
+                    conversation: { id },
+                    user: { id: user.id },
+                },
+                {
+                    isDeleted: true,
+                },
+            );
 
-            // if (sendersIds.includes(user.id)) {
-            //     conversation.usersSenders = conversation.usersSenders.filter(
-            //         (u) => u.id !== user.id,
-            //     );
-            // }
+            conversation.participants = conversation.participants.map(
+                (participant) => {
+                    if (participant.user.id === user.id) {
+                        return {
+                            ...participant,
+                            isDeleted: true,
+                        };
+                    }
 
-            // if (receiversIds.includes(user.id)) {
-            //     conversation.usersReceivers =
-            //         conversation.usersReceivers.filter((u) => u.id !== user.id);
-            // }
+                    return participant;
+                },
+            );
 
-            // if (
-            //     conversation.usersReceivers.length === 0 &&
-            //     conversation.usersSenders.length === 0
-            // ) {
-            //     await this.conversationRepository.remove(conversation);
-            // } else {
-            //     await this.conversationRepository.save(conversation);
-            // }
+            if (
+                conversation.participants.findIndex((p) => !p.isDeleted) === -1
+            ) {
+                await this.conversationRepository.remove(conversation);
+            }
 
             return true;
         } catch (error) {

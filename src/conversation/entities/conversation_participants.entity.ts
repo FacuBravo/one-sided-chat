@@ -5,6 +5,7 @@ import {
     Entity,
     ManyToOne,
     PrimaryGeneratedColumn,
+    Unique,
 } from 'typeorm';
 import { Conversation } from './conversation.entity';
 
@@ -14,9 +15,16 @@ export enum ParticipantType {
 }
 
 @Entity('conversation_participants')
+@Unique(['conversation', 'user', 'type'])
 export class ConversationParticipant {
     @PrimaryGeneratedColumn('uuid')
     id: string;
+
+    @Column({
+        type: 'boolean',
+        default: false,
+    })
+    isDeleted: boolean;
 
     @ManyToOne(
         () => Conversation,
