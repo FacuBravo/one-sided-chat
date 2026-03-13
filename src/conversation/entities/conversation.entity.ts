@@ -11,6 +11,7 @@ import {
     OneToMany,
     PrimaryGeneratedColumn,
 } from 'typeorm';
+import { ConversationParticipant } from './conversation_participants.entity';
 
 @Entity('conversations')
 @Index('idx_conversations_updated_at', ['updatedAt'])
@@ -45,13 +46,11 @@ export class Conversation {
     @OneToMany(() => Message, (message) => message.conversation)
     messages: Message[];
 
-    @ManyToMany(() => User, (user) => user.conversationsSenders)
-    @JoinTable()
-    usersSenders: User[];
-
-    @ManyToMany(() => User, (user) => user.conversationsReceivers)
-    @JoinTable()
-    usersReceivers: User[];
+    @OneToMany(
+        () => ConversationParticipant,
+        (participant) => participant.conversation,
+    )
+    participants: ConversationParticipant[];
 
     @OneToMany(() => Invitation, (invitation) => invitation.conversation)
     invitations: Invitation[];

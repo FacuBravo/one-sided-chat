@@ -160,7 +160,8 @@ export class InvitationService {
                 },
                 relations: [
                     'conversation',
-                    'conversation.usersReceivers',
+                    'conversation.participants',
+                    'conversation.participants.user',
                     'userSender',
                     'userReceiver',
                 ],

@@ -1,5 +1,12 @@
 import { Conversation } from 'src/conversation/entities/conversation.entity';
-import { Column, Entity, ManyToMany, PrimaryGeneratedColumn } from 'typeorm';
+import { ConversationParticipant } from 'src/conversation/entities/conversation_participants.entity';
+import {
+    Column,
+    Entity,
+    ManyToMany,
+    OneToMany,
+    PrimaryGeneratedColumn,
+} from 'typeorm';
 
 @Entity({ name: 'users' })
 export class User {
@@ -58,12 +65,6 @@ export class User {
     })
     phoneVerified: boolean;
 
-    @ManyToMany(() => Conversation, (conversation) => conversation.usersSenders)
-    conversationsSenders: Conversation[];
-
-    @ManyToMany(
-        () => Conversation,
-        (conversation) => conversation.usersReceivers,
-    )
-    conversationsReceivers: Conversation[];
+    @OneToMany(() => ConversationParticipant, (participant) => participant.user)
+    conversationParticipants: ConversationParticipant[];
 }

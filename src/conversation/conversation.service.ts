@@ -25,6 +25,10 @@ import { ContactsService } from 'src/contacts/contacts.service';
 import { PaginationDto } from 'src/utils/dtos/pagination.dto';
 import { ConversationRead } from './entities/conversation_read.entity';
 import { InvitationService } from 'src/invitation/invitation.service';
+import {
+    ConversationParticipant,
+    ParticipantType,
+} from './entities/conversation_participants.entity';
 
 @Injectable()
 export class ConversationService {
@@ -35,6 +39,8 @@ export class ConversationService {
         private readonly conversationRepository: Repository<Conversation>,
         @InjectRepository(ConversationRead)
         private readonly conversationReadRepository: Repository<ConversationRead>,
+        @InjectRepository(ConversationParticipant)
+        private readonly conversationParticipantRepository: Repository<ConversationParticipant>,
         private readonly authService: AuthService,
         @Inject(forwardRef(() => MessageService))
         private readonly messageService: MessageService,
@@ -60,21 +66,35 @@ export class ConversationService {
                 invitedUsers = await this.getUsersByPhones(invitedPhones, user);
             }
 
+            const conversation = this.conversationRepository.create({
+                name,
+                description,
+                type,
+            });
+
+            const savedConversation =
+                await this.conversationRepository.save(conversation);
+
             const usersReceivers = await this.getUsersByPhones(
                 phonesReceivers,
                 user,
             );
 
-            const conversation = this.conversationRepository.create({
-                name,
-                description,
-                type,
-                usersSenders: [user],
-                usersReceivers,
-            });
-
-            const savedConversation =
-                await this.conversationRepository.save(conversation);
+            const participants =
+                await this.conversationParticipantRepository.save(
+                    [
+                        usersReceivers.map((user) => ({
+                            conversation: savedConversation,
+                            user,
+                            type: ParticipantType.RECEIVER,
+                        })),
+                        {
+                            conversation: savedConversation,
+                            user,
+                            type: ParticipantType.SENDER,
+                        },
+                    ].flat(),
+                );
 
             if (invitedUsers.length) {
                 await this.invitationService.create(
@@ -84,16 +104,16 @@ export class ConversationService {
                 );
             }
 
-            const receiversIds = savedConversation.usersReceivers
-                .flat()
-                .map((user) => user.id);
+            const receiversIds = usersReceivers.flat().map((user) => user.id);
 
             const contacts = await this.contactsService.findByUsers(
                 user,
                 receiversIds,
             );
 
-            return conversationsMapper([savedConversation], contacts)[0];
+            const newConversation = await this.findOneRaw(savedConversation.id);
+
+            return conversationsMapper([newConversation], contacts)[0];
         } catch (error) {
             return handleErrors(this.logger, error);
         }
@@ -101,27 +121,24 @@ export class ConversationService {
 
     async findAll(user: User) {
         try {
-            const conversations = await this.conversationRepository.find({
-                relations: ['usersReceivers', 'usersSenders'],
-                where: [
-                    {
-                        usersReceivers: {
-                            id: user.id,
-                        },
-                    },
-                    {
-                        usersSenders: {
-                            id: user.id,
-                        },
-                    },
-                ],
-                order: {
-                    updatedAt: 'DESC',
-                    usersReceivers: {
-                        fullName: 'ASC',
-                    },
-                },
-            });
+            const conversations = await this.conversationRepository
+                .createQueryBuilder('conversation')
+                .leftJoinAndSelect('conversation.participants', 'participants')
+                .leftJoinAndSelect('participants.user', 'user')
+                .where((qb) => {
+                    const sub = qb
+                        .subQuery()
+                        .select('1')
+                        .from(ConversationParticipant, 'cp')
+                        .where('cp.conversationId = conversation.id')
+                        .andWhere('cp.userId = :userId')
+                        .getQuery();
+
+                    return `EXISTS ${sub}`;
+                })
+                .setParameter('userId', user.id)
+                .orderBy('conversation.updatedAt', 'DESC')
+                .getMany();
 
             const lastMessagesIds = conversations
                 .map((conversation) => conversation.lastMessageId)
@@ -131,14 +148,22 @@ export class ConversationService {
                 await this.messageService.findByIds(lastMessagesIds);
 
             const receiversIds = conversations
-                .map((conversation) => conversation.usersReceivers)
+                .map((conversation) => conversation.participants)
                 .flat()
-                .map((user) => user.id);
+                .filter(
+                    (participant) =>
+                        participant.type === ParticipantType.RECEIVER,
+                )
+                .map((participant) => participant.user.id);
 
             const sendersIds = conversations
-                .map((conversation) => conversation.usersSenders)
+                .map((conversation) => conversation.participants)
                 .flat()
-                .map((user) => user.id);
+                .filter(
+                    (participant) =>
+                        participant.type === ParticipantType.SENDER,
+                )
+                .map((participant) => participant.user.id);
 
             const sendersContacts = await this.contactsService.findByUsers(
                 user,
@@ -198,10 +223,12 @@ export class ConversationService {
         try {
             const conversation = await this.conversationRepository.findOne({
                 where: { id },
-                relations: ['usersReceivers', 'usersSenders'],
+                relations: ['participants', 'participants.user'],
                 order: {
-                    usersReceivers: {
-                        fullName: 'ASC',
+                    participants: {
+                        user: {
+                            fullName: 'ASC',
+                        },
                     },
                 },
             });
@@ -210,13 +237,19 @@ export class ConversationService {
                 throw new NotFoundException('Conversation not found');
             }
 
-            const receiversIds = conversation.usersReceivers
-                .flat()
-                .map((user) => user.id);
+            const receiversIds = conversation.participants
+                .filter(
+                    (participant) =>
+                        participant.type === ParticipantType.RECEIVER,
+                )
+                .map((participant) => participant.user.id);
 
-            const sendersIds = conversation.usersSenders
-                .flat()
-                .map((user) => user.id);
+            const sendersIds = conversation.participants
+                .filter(
+                    (participant) =>
+                        participant.type === ParticipantType.SENDER,
+                )
+                .map((participant) => participant.user.id);
 
             if (
                 !receiversIds.includes(user.id) &&
@@ -272,7 +305,7 @@ export class ConversationService {
             where: {
                 id,
             },
-            relations: ['usersReceivers', 'usersSenders'],
+            relations: ['participants', 'participants.user'],
         });
 
         if (!conversation) {
@@ -290,9 +323,11 @@ export class ConversationService {
         try {
             const conversation = await this.findOneRaw(conversationId);
 
-            conversation.usersSenders.push(invitedUser);
-
-            return this.conversationRepository.save(conversation);
+            return await this.conversationParticipantRepository.save({
+                conversation,
+                user: invitedUser,
+                type: ParticipantType.RECEIVER,
+            });
         } catch (error) {
             return handleErrors(this.logger, error);
         }
@@ -352,42 +387,48 @@ export class ConversationService {
 
     async remove(id: string, user: User) {
         try {
-            const conversation = await this.findOneRaw(id);
+            // const conversation = await this.findOneRaw(id);
 
-            const receiversIds = conversation.usersReceivers
-                .flat()
-                .map((user) => user.id);
+            // const receiversIds = conversation.participants
+            //     .filter(
+            //         (participant) =>
+            //             participant.type === ParticipantType.RECEIVER,
+            //     )
+            //     .map((participant) => participant.user.id);
 
-            const sendersIds = conversation.usersSenders
-                .flat()
-                .map((user) => user.id);
+            // const sendersIds = conversation.participants
+            //     .filter(
+            //         (participant) =>
+            //             participant.type === ParticipantType.SENDER,
+            //     )
+            //     .map((participant) => participant.user.id);
 
-            if (
-                !receiversIds.includes(user.id) &&
-                !sendersIds.includes(user.id)
-            ) {
-                throw new NotFoundException('Conversation not found');
-            }
+            // if (
+            //     !receiversIds.includes(user.id) &&
+            //     !sendersIds.includes(user.id)
+            // ) {
+            //     throw new NotFoundException('Conversation not found');
+            // }
 
-            if (sendersIds.includes(user.id)) {
-                conversation.usersSenders = conversation.usersSenders.filter(
-                    (u) => u.id !== user.id,
-                );
-            }
+            // if (sendersIds.includes(user.id)) {
+            //     conversation.usersSenders = conversation.usersSenders.filter(
+            //         (u) => u.id !== user.id,
+            //     );
+            // }
 
-            if (receiversIds.includes(user.id)) {
-                conversation.usersReceivers =
-                    conversation.usersReceivers.filter((u) => u.id !== user.id);
-            }
+            // if (receiversIds.includes(user.id)) {
+            //     conversation.usersReceivers =
+            //         conversation.usersReceivers.filter((u) => u.id !== user.id);
+            // }
 
-            if (
-                conversation.usersReceivers.length === 0 &&
-                conversation.usersSenders.length === 0
-            ) {
-                await this.conversationRepository.remove(conversation);
-            } else {
-                await this.conversationRepository.save(conversation);
-            }
+            // if (
+            //     conversation.usersReceivers.length === 0 &&
+            //     conversation.usersSenders.length === 0
+            // ) {
+            //     await this.conversationRepository.remove(conversation);
+            // } else {
+            //     await this.conversationRepository.save(conversation);
+            // }
 
             return true;
         } catch (error) {
@@ -400,7 +441,7 @@ export class ConversationService {
             where: {
                 id,
             },
-            relations: ['usersReceivers', 'usersSenders'],
+            relations: ['participants', 'participants.user'],
         });
 
         if (!conversation) {
