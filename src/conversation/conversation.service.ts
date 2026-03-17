@@ -32,6 +32,7 @@ import { ConversationRead } from './entities/conversation_read.entity';
 import { InvitationService } from 'src/invitation/invitation.service';
 import {
     ConversationParticipant,
+    ParticipantColor,
     ParticipantRole,
     ParticipantType,
 } from './entities/conversation_participants.entity';
@@ -39,6 +40,7 @@ import {
 @Injectable()
 export class ConversationService {
     private readonly logger = new Logger('ConversationService');
+    private readonly colors = Object.values(ParticipantColor);
 
     constructor(
         @InjectRepository(Conversation)
@@ -98,6 +100,7 @@ export class ConversationService {
                         user,
                         type: ParticipantType.SENDER,
                         role: ParticipantRole.ADMIN,
+                        color: ParticipantColor.BLUE,
                     },
                 ].flat(),
             );
@@ -378,10 +381,18 @@ export class ConversationService {
         try {
             const conversation = await this.findOneRaw(conversationId);
 
+            const colorIndex =
+                conversation.participants.filter(
+                    (p) => !p.isDeleted && p.type === ParticipantType.SENDER,
+                ).length + 1;
+
+            const color = this.colors[colorIndex % this.colors.length];
+
             return await this.conversationParticipantRepository.save({
                 conversation,
                 user: invitedUser,
                 type: ParticipantType.SENDER,
+                color,
             });
         } catch (error) {
             return handleErrors(this.logger, error);

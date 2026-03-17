@@ -41,6 +41,7 @@ export const conversationUsersMapper = (
             role: participant?.role || ParticipantRole.USER,
             isDeleted: participant?.isDeleted || false,
             participantId: participant?.id || '',
+            color: participant?.color,
         };
     });
 };

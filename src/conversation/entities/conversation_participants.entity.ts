@@ -19,6 +19,17 @@ export enum ParticipantRole {
     USER = 'user',
 }
 
+export enum ParticipantColor {
+    BLUE = 'blue',
+    RED = 'red',
+    GREEN = 'green',
+    ORANGE = 'orange',
+    YELLOW = 'yellow',
+    LIGHT_BLUE = 'light_blue',
+    PINK = 'pink',
+    PURPLE = 'purple',
+}
+
 @Entity('conversation_participants')
 @Unique(['conversation', 'user', 'type', 'isDeleted'])
 export class ConversationParticipant {
@@ -60,4 +71,11 @@ export class ConversationParticipant {
 
     @CreateDateColumn()
     createdAt: Date;
+
+    @Column({
+        type: 'enum',
+        enum: ParticipantColor,
+        nullable: true,
+    })
+    color?: ParticipantColor;
 }
