@@ -11,7 +11,11 @@ import {
 } from 'src/auth/mappers/user.mapper';
 import { ContactResponseDto } from 'src/contacts/dto/contact.response';
 import { PaginationResponse } from 'src/utils/dtos/pagination-response';
-import { ConversationParticipant } from '../entities/conversation_participants.entity';
+import {
+    ConversationParticipant,
+    ParticipantRole,
+    ParticipantType,
+} from '../entities/conversation_participants.entity';
 
 export type UnreadMessages = {
     conversationId: string;
@@ -51,11 +55,13 @@ export const conversationsMapper = (
             usersSenders: conversationUsersMapper(
                 usersSenders,
                 conversation.participants,
+                ParticipantType.SENDER,
                 contactsSenders,
             ),
             usersReceivers: conversationUsersMapper(
                 usersReceivers,
                 conversation.participants,
+                ParticipantType.RECEIVER,
                 contactsReceivers,
             ),
             lastMessageSeq: conversation.lastMessageSeq,
@@ -87,11 +93,13 @@ export const fullConversationMapper = (
         usersSenders: conversationUsersMapper(
             usersSenders,
             conversation.participants,
+            ParticipantType.SENDER,
             contactsSenders,
         ),
         usersReceivers: conversationUsersMapper(
             usersReceivers,
             conversation.participants,
+            ParticipantType.RECEIVER,
             contactsReceivers,
         ),
         messages,

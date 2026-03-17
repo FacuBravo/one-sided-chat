@@ -37,5 +37,5 @@ export class RemoveParticipantsDto {
     @ArrayNotEmpty()
     @IsUUID(undefined, { each: true })
     @ArrayUnique()
-    userIds: string[];
+    participantsIds: string[];
 }

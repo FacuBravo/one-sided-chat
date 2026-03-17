@@ -1,4 +1,4 @@
-import { ParticipantRole } from "src/conversation/entities/conversation_participants.entity";
+import { ParticipantRole } from 'src/conversation/entities/conversation_participants.entity';
 
 export interface UserResponseDto {
     id: string;
@@ -9,4 +9,5 @@ export interface UserResponseDto {
 export interface ConversationUserDto extends UserResponseDto {
     role: ParticipantRole;
     isDeleted: boolean;
+    participantId: string;
 }

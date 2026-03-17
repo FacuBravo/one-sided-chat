@@ -210,8 +210,23 @@ export class ConversationService {
                 }),
             );
 
+            const filteredConversations = conversations.filter((c) => {
+                const participant = c.participants.find(
+                    (p) => p.user.id === user.id,
+                );
+
+                if (
+                    participant?.type === ParticipantType.RECEIVER &&
+                    !c.lastMessageId
+                ) {
+                    return false;
+                }
+
+                return true;
+            });
+
             return conversationsMapper(
-                conversations,
+                filteredConversations,
                 receiversContacts,
                 sendersContacts,
                 lastMessages,
@@ -480,6 +495,10 @@ export class ConversationService {
         try {
             const conversation = await this.findOneRaw(id);
 
+            if (conversation.type !== 'group') {
+                throw new BadRequestException('Conversation is not a group');
+            }
+
             const participant = conversation.participants.find(
                 (p) => p.user.id === user.id,
             );
@@ -537,11 +556,7 @@ export class ConversationService {
         user: User,
     ) {
         try {
-            const { userIds } = removeParticipantsDto;
-
-            if (userIds.includes(user.id)) {
-                throw new BadRequestException('You cannot remove yourself');
-            }
+            const { participantsIds } = removeParticipantsDto;
 
             const conversation = await this.findOneRaw(id);
 
@@ -559,8 +574,12 @@ export class ConversationService {
                 );
             }
 
+            if (participantsIds.includes(participant.id)) {
+                throw new BadRequestException('You cannot remove yourself');
+            }
+
             const participantsToRemove = conversation.participants.filter(
-                (p) => userIds.includes(p.user.id) && !p.isDeleted,
+                (p) => participantsIds.includes(p.id) && !p.isDeleted,
             );
 
             if (participantsToRemove.length === 0) {
@@ -584,9 +603,7 @@ export class ConversationService {
             await this.conversationParticipantRepository.update(
                 {
                     conversation: { id },
-                    user: {
-                        id: In(userIds),
-                    },
+                    id: In(participantsIds),
                 },
                 {
                     isDeleted: true,
