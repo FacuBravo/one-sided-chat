@@ -1,4 +1,9 @@
-import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
+import {
+    BadRequestException,
+    Injectable,
+    Logger,
+    NotFoundException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { JwtService } from '@nestjs/jwt';
 import { In, QueryPartialEntity, Repository } from 'typeorm';
@@ -8,6 +13,7 @@ import {
     BasicPhoneDto,
     CreateUserDto,
     LoggedUserResponse,
+    UpdatePushTokenDto,
     UpdateUserDataDto,
     VerifyIdTokenDto,
 } from './dto';
@@ -226,6 +232,21 @@ export class AuthService {
             }
 
             return usersMapper([user])[0];
+        } catch (error) {
+            return handleErrors(this.logger, error);
+        }
+    }
+
+    async registerPushToken(
+        updatePushTokenDto: UpdatePushTokenDto,
+        user: User,
+    ) {
+        try {
+            const result = await this.userRepository.update(
+                user.id,
+                updatePushTokenDto,
+            );
+            return result.affected ? result.affected > 0 : false;
         } catch (error) {
             return handleErrors(this.logger, error);
         }

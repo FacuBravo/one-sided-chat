@@ -8,13 +8,13 @@ import {
     Delete,
 } from '@nestjs/common';
 import { ApiResponse } from '@nestjs/swagger';
-
 import { User } from './entities/user.entity';
 import { AuthService } from './auth.service';
 import {
     BasicPhoneDto,
     CreateUserDto,
     LoggedUserResponse,
+    UpdatePushTokenDto,
     UpdateUserDataDto,
     VerifyIdTokenDto,
 } from './dto';
@@ -116,5 +116,14 @@ export class AuthController {
     })
     verifyIdToken(@Body() verifyIdTokenDto: VerifyIdTokenDto) {
         return this.authService.verifyIdToken(verifyIdTokenDto);
+    }
+
+    @Patch('/register-push-token')
+    @Auth()
+    registerPushToken(
+        @Body() updatePushTokenDto: UpdatePushTokenDto,
+        @GetUserVerified() user: User,
+    ) {
+        return this.authService.registerPushToken(updatePushTokenDto, user);
     }
 }

@@ -60,6 +60,14 @@ export class User {
     refreshToken?: string | null;
 
     @Column({
+        type: 'text',
+        nullable: true,
+        unique: true,
+        select: false,
+    })
+    pushToken?: string | null;
+
+    @Column({
         type: 'boolean',
         default: false,
     })
