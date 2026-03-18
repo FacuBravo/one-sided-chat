@@ -69,7 +69,7 @@ export class MessageService {
                 text,
                 userSender: user,
                 conversation: { id: conversation.id },
-                seq: conversation.lastMessageSeq + 1,
+                seq: Number(conversation.lastMessageSeq) + 1,
             });
 
             const savedMessage = await this.messageRepository.save(message);
@@ -77,7 +77,7 @@ export class MessageService {
             await this.conversationService.updateLastMessage(
                 conversation.id,
                 savedMessage.id,
-                conversation.lastMessageSeq + 1,
+                Number(conversation.lastMessageSeq) + 1,
             );
 
             return savedMessage;
