@@ -1,15 +1,16 @@
 import { Expo } from 'expo-server-sdk';
+import { MessagePush } from './interfaces/message-push.interface';
 
 const expo = new Expo();
 
 export class NotificationService {
-    async sendPush(tokens: string[], message: string, data?: any) {
-        const messages = tokens.map((token) => ({
+    async sendMessagePush({ tokens, titles, body, data }: MessagePush) {
+        const messages = tokens.map((token, index) => ({
             to: token,
             sound: 'default',
-            title: 'Nuevo mensaje',
-            body: message,
-            data,
+            title: titles[index],
+            body,
+            data: data as any,
             channelId: 'messages',
         }));
 

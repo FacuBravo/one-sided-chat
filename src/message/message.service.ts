@@ -17,6 +17,10 @@ import { MessageResponseDto } from './dto/message.response';
 import { ConversationResponseDto } from 'src/conversation/dto/conversation.response';
 import { messagesMapper } from './mappers/messages.mapper';
 import { PaginationResponse } from 'src/utils/dtos/pagination-response';
+import { SocketGateway } from 'src/socket/socket.gateway';
+import { AuthService } from 'src/auth/auth.service';
+import { NotificationService } from 'src/notifications/notifications.service';
+import { ContactsService } from 'src/contacts/contacts.service';
 
 @Injectable()
 export class MessageService {
@@ -27,6 +31,10 @@ export class MessageService {
         private readonly messageRepository: Repository<Message>,
         @Inject(forwardRef(() => ConversationService))
         private readonly conversationService: ConversationService,
+        private readonly socketGateway: SocketGateway,
+        private readonly authService: AuthService,
+        private readonly notificationService: NotificationService,
+        private readonly contactsService: ContactsService,
     ) {}
 
     async create(user: User, createMessageDto: CreateMessageDto) {
@@ -80,7 +88,50 @@ export class MessageService {
                 Number(conversation.lastMessageSeq) + 1,
             );
 
-            return savedMessage;
+            const mappedMessage = messagesMapper([savedMessage])[0];
+
+            try {
+                const usersReceivers = [
+                    ...conversation.usersReceivers
+                        .filter((u) => !u.isDeleted)
+                        .map((u) => u.id),
+                    ...conversation.usersSenders
+                        .filter((u) => !u.isDeleted && u.id !== user.id)
+                        .map((u) => u.id),
+                ];
+
+                this.socketGateway.wss
+                    .to(usersReceivers.map((u) => `user:${u}`))
+                    .emit('message', {
+                        conversationId: conversation.id,
+                        message: mappedMessage,
+                    });
+
+                const usersReceiversIdsAndTokens =
+                    await this.authService.getPushTokens(usersReceivers);
+
+                const contacts =
+                    await this.contactsService.findByReferencedUser(
+                        usersReceiversIdsAndTokens.map((u) => u.id),
+                        user.id,
+                    );
+
+                this.notificationService.sendMessagePush({
+                    tokens: usersReceiversIdsAndTokens.map((u) => u.pushToken),
+                    titles: usersReceiversIdsAndTokens.map(
+                        (u, i) => contacts[i]?.name || user.fullName,
+                    ),
+                    body: text.split('\n')[0].slice(0, 50),
+                    data: {
+                        conversationId: conversation.id,
+                        message: mappedMessage,
+                    },
+                });
+            } catch (error) {
+                console.log(error);
+            }
+
+            return mappedMessage;
         } catch (error) {
             return handleErrors(this.logger, error);
         }

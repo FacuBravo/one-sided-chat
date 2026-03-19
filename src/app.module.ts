@@ -8,6 +8,7 @@ import { MessageModule } from './message/message.module';
 import { ConversationModule } from './conversation/conversation.module';
 import { ContactsModule } from './contacts/contacts.module';
 import { InvitationModule } from './invitation/invitation.module';
+import { SocketModule } from './socket/socket.module';
 
 @Module({
     imports: [
@@ -31,6 +32,7 @@ import { InvitationModule } from './invitation/invitation.module';
         ConversationModule,
         ContactsModule,
         InvitationModule,
+        SocketModule,
     ],
 })
 export class AppModule {}

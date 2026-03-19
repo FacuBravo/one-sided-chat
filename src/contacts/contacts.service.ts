@@ -131,6 +131,25 @@ export class ContactsService {
         }));
     }
 
+    async findByReferencedUser(
+        userIds: string[],
+        referencedUserId: string,
+    ): Promise<ContactResponseDto[]> {
+        const contacts = await this.contactRepository.find({
+            where: {
+                user: { id: In(userIds) },
+                referencedUser: { id: referencedUserId },
+            },
+            relations: ['referencedUser'],
+            order: { name: 'ASC', referencedUser: { fullName: 'ASC' } },
+        });
+
+        return contacts.map((contact) => ({
+            ...contact,
+            referencedUser: usersMapper([contact.referencedUser])[0],
+        }));
+    }
+
     private getContactByUser(user: User, referencedUserId: string) {
         return this.contactRepository.findOne({
             where: { user, referencedUser: { id: referencedUserId } },

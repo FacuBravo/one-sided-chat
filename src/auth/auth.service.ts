@@ -252,6 +252,31 @@ export class AuthService {
         }
     }
 
+    async getPushTokens(ids: string[]) {
+        try {
+            const result = await this.userRepository.find({
+                where: {
+                    id: In(ids),
+                },
+                select: ['id', 'pushToken'],
+            });
+
+            return result
+                .map((user) => ({
+                    id: user.id,
+                    pushToken: user.pushToken as string,
+                }))
+                .filter(
+                    (user) =>
+                        user.pushToken !== null &&
+                        user.pushToken !== undefined &&
+                        user.pushToken !== '',
+                );
+        } catch (error) {
+            return handleErrors(this.logger, error);
+        }
+    }
+
     private createJwt(payload: JwtPayload) {
         return this.jwtService.sign(payload);
     }
