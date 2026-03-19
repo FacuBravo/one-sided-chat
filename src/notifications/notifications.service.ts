@@ -1,5 +1,6 @@
 import { Expo } from 'expo-server-sdk';
 import { MessagePush } from './interfaces/message-push.interface';
+import { notificationsChannels } from './consts/notifications';
 
 const expo = new Expo();
 
@@ -11,7 +12,7 @@ export class NotificationService {
             title: titles[index],
             body,
             data: data as any,
-            channelId: 'messages',
+            channelId: notificationsChannels.messages,
         }));
 
         const chunks = expo.chunkPushNotifications(messages);

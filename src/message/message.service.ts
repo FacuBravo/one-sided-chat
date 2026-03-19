@@ -21,6 +21,7 @@ import { SocketGateway } from 'src/socket/socket.gateway';
 import { AuthService } from 'src/auth/auth.service';
 import { NotificationService } from 'src/notifications/notifications.service';
 import { ContactsService } from 'src/contacts/contacts.service';
+import { notificationsChannels } from 'src/notifications/consts/notifications';
 
 @Injectable()
 export class MessageService {
@@ -90,23 +91,27 @@ export class MessageService {
 
             const mappedMessage = messagesMapper([savedMessage])[0];
 
-            try {
-                const usersReceivers = [
-                    ...conversation.usersReceivers
-                        .filter((u) => !u.isDeleted)
-                        .map((u) => u.id),
-                    ...conversation.usersSenders
-                        .filter((u) => !u.isDeleted && u.id !== user.id)
-                        .map((u) => u.id),
-                ];
+            const usersReceivers = [
+                ...conversation.usersReceivers
+                    .filter((u) => !u.isDeleted)
+                    .map((u) => u.id),
+                ...conversation.usersSenders
+                    .filter((u) => !u.isDeleted && u.id !== user.id)
+                    .map((u) => u.id),
+            ];
 
+            try {
                 this.socketGateway.wss
                     .to(usersReceivers.map((u) => `user:${u}`))
-                    .emit('message', {
+                    .emit(notificationsChannels.messages, {
                         conversationId: conversation.id,
                         message: mappedMessage,
                     });
+            } catch (error) {
+                console.log(error);
+            }
 
+            try {
                 const usersReceiversIdsAndTokens =
                     await this.authService.getPushTokens(usersReceivers);
 
