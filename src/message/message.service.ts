@@ -9,7 +9,7 @@ import { CreateMessageDto } from './dto/create-message.dto';
 import { UpdateMessageDto } from './dto/update-message.dto';
 import { User } from 'src/auth/entities/user.entity';
 import { InjectRepository } from '@nestjs/typeorm';
-import { In, Not, Raw, Repository } from 'typeorm';
+import { In, LessThan, Not, Raw, Repository } from 'typeorm';
 import { Message } from './entities/message.entity';
 import { handleErrors } from 'src/utils/functions';
 import { ConversationService } from 'src/conversation/conversation.service';
@@ -172,22 +172,25 @@ export class MessageService {
 
     async findAllByConversationId(
         conversationId: string,
-        offset: number = 0,
+        beforeSeq: number,
         limit: number = 30,
     ): Promise<PaginationResponse<MessageResponseDto>> {
         const [messages, total] = await this.messageRepository.findAndCount({
-            where: { conversation: { id: conversationId } },
-            order: { createdAt: 'DESC' },
+            where: {
+                conversation: { id: conversationId },
+                seq: LessThan(beforeSeq),
+            },
+            order: { seq: 'DESC' },
             relations: ['userSender'],
-            skip: offset,
             take: limit,
         });
 
         return {
             data: messagesMapper(messages),
-            total,
-            isLast: total <= offset + limit,
-            page: Math.floor(offset / limit),
+            nextCursor: messages.length
+                ? messages[messages.length - 1].seq
+                : null,
+            isLast: messages.length < limit,
         };
     }
 

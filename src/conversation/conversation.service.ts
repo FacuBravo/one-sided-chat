@@ -295,7 +295,8 @@ export class ConversationService {
 
             const messages = await this.messageService.findAllByConversationId(
                 id,
-                paginationDto.offset,
+                paginationDto.beforeSeq ||
+                    Number(conversation.lastMessageSeq) + 1,
                 paginationDto.limit,
             );
 
